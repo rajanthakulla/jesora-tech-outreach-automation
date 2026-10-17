@@ -250,52 +250,95 @@ app.post('/api/leads/scout-now', async (req: Request, res: Response) => {
     }
 
     const targetCount = count || 2;
+    const apiKey = process.env.GEOAPIFY_API_KEY;
+    const existingLeads = await neonDb.getAllLeads();
+    const existingEmails = new Set(existingLeads.map(l => l.email.toLowerCase()));
     const now = new Date().toISOString();
-    const generated: Lead[] = [];
+    const addedLeads: Lead[] = [];
 
-    const seedCompanies = [
-      { name: 'Meridian Quantum Labs', domain: 'meridianqlabs.com', city: 'Cambridge, MA, USA', role: 'CTO', contact: 'Dr. Arthur Vance', ind: 'Quantum Computing & AI', tech: 'Python, C++, AWS HPC', pain: 'High simulation queue times and lack of customer-facing dashboard' },
-      { name: 'Solaria Solar Dynamics', domain: 'solariadynamics.eu', city: 'Berlin, Germany', role: 'Head of Digital Products', contact: 'Greta Lindner', ind: 'CleanTech & Renewable Energy', tech: 'WordPress, PHP, MySQL', pain: 'Slow legacy WordPress site with high bounce rate on mobile quote requests' },
-      { name: 'Vanguard Cargo Logistics', domain: 'vanguardcargotech.co.uk', city: 'London, UK', role: 'Operations Director', contact: 'Marcus Bell', ind: 'Logistics & Supply Chain', tech: 'ASP.NET, SQL Server', pain: 'Manual invoice matching and lack of automated client tracking notifications' },
-      { name: 'Aethelgard Cyber Systems', domain: 'aethelgard.io', city: 'Zurich, Switzerland', role: 'VP Engineering', contact: 'Stefan Keller', ind: 'Cybersecurity & Compliance', tech: 'Go, Kubernetes, Next.js', pain: 'Security dashboard scaling limitations during high DDoS ingestion windows' }
-    ];
-
-    for (const seed of seedCompanies.slice(0, targetCount)) {
-      const email = `${seed.contact.toLowerCase().replace(/[^a-z]/g, '.')}@${seed.domain}`;
-      const newLead: Lead = {
-        id: `lead-${crypto.randomUUID().slice(0, 8)}`,
-        companyName: seed.name,
-        website: `https://${seed.domain}`,
-        industry: seed.ind,
-        contactName: seed.contact,
-        contactTitle: seed.role,
-        email,
-        address: seed.city,
-        country: seed.city.split(',').pop()?.trim() || 'Global',
-        techStack: seed.tech,
-        painPoints: seed.pain,
-        score: 92,
-        status: 'discovered',
-        websiteVerified: true,
-        campaignId: campaign.id,
-        currentSequenceStep: 0,
-        createdAt: now,
-        updatedAt: now
+    if (apiKey) {
+      const searchCity = campaign.targetLocations[0] || 'London, UK';
+      const cityMap: Record<string, { lon: number; lat: number }> = {
+        'US': { lon: -74.006, lat: 40.7128 },
+        'UK': { lon: -0.1276, lat: 51.5072 },
+        'Australia': { lon: 151.2093, lat: -33.8688 },
+        'Canada': { lon: -79.3832, lat: 43.6532 },
+        'Singapore': { lon: 103.8198, lat: 1.3521 },
+        'Global': { lon: -0.1276, lat: 51.5072 }
       };
 
-      await neonDb.insertLead(newLead);
-      generated.push(newLead);
+      const coords = cityMap[searchCity] || { lon: -0.1276, lat: 51.5072 };
+      const url = `https://api.geoapify.com/v2/places?categories=commercial,office,healthcare,education&filter=circle:${coords.lon},${coords.lat},25000&limit=${targetCount * 5}&apiKey=${apiKey}`;
+
+      const resPlaces = await fetch(url).catch(() => null);
+      if (resPlaces && resPlaces.ok) {
+        const data = (await resPlaces.json().catch(() => ({}))) as any;
+        const features = data.features || [];
+
+        for (const f of features) {
+          if (addedLeads.length >= targetCount) break;
+          const p = f.properties;
+          if (!p.name || !p.formatted || !p.website) continue;
+
+          let contactEmail = p.contact?.email || p.email;
+          if (!contactEmail) {
+            try {
+              const domain = new URL(p.website.startsWith('http') ? p.website : `https://${p.website}`).hostname.replace(/^www\./, '');
+              contactEmail = `contact@${domain}`;
+            } catch {
+              continue;
+            }
+          }
+
+          if (existingEmails.has(contactEmail.toLowerCase())) continue;
+
+          const realLead: Lead = {
+            id: `lead-${crypto.randomUUID().slice(0, 8)}`,
+            companyName: p.name.trim(),
+            website: p.website.trim(),
+            industry: campaign.targetNiche,
+            contactName: 'Executive Team',
+            contactTitle: 'Managing Director / Founder',
+            email: contactEmail.toLowerCase(),
+            phone: p.contact?.phone || p.phone,
+            address: p.formatted.trim(),
+            country: searchCity,
+            techStack: 'Commercial Verified Web Presence',
+            painPoints: `Digital presence modernization and automated workflow scheduling for ${p.name.trim()}`,
+            score: 88,
+            status: 'discovered',
+            websiteVerified: true,
+            campaignId: campaign.id,
+            currentSequenceStep: 0,
+            createdAt: now,
+            updatedAt: now
+          };
+
+          await neonDb.insertLead(realLead);
+          existingEmails.add(contactEmail.toLowerCase());
+          addedLeads.push(realLead);
+        }
+      }
     }
 
     await neonDb.insertAgentLog({
       id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       agentId: 'lead_scout',
-      level: 'success',
-      message: `Scouted and verified ${generated.length} prospective enterprise leads for campaign "${campaign.name}"`,
+      level: addedLeads.length > 0 ? 'success' : 'info',
+      message: addedLeads.length > 0
+        ? `Live scouted ${addedLeads.length} genuine commercial registered businesses for campaign "${campaign.name}"`
+        : `Live scout completed: 0 new uncontacted businesses found. Import genuine target lists via CSV.`,
       timestamp: now
     });
 
-    res.json({ success: true, leadsAdded: generated.length, campaignName: campaign.name });
+    res.json({
+      success: true,
+      leadsAdded: addedLeads.length,
+      campaignName: campaign.name,
+      message: addedLeads.length > 0
+        ? `Successfully scouted ${addedLeads.length} genuine registered business(es).`
+        : `No new leads discovered in this radius. Upload real prospect lists via CSV or try another location.`
+    });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

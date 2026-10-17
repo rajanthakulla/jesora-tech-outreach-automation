@@ -178,112 +178,14 @@ export class LeadScoutAgent extends BaseAgent {
   }
 
   /**
-   * Domain-specific seed pool representing real-world commercial niches
-   * with 100% verified addresses, business names, and decision makers.
+   * Production Prospect Pool:
+   * Returns empty array to guarantee zero synthetic or mock leads in production.
+   * Leads are exclusively discovered via live Google Places / Geoapify / Apollo APIs or CSV import.
    */
   private generateProspectPoolForCampaign(campaign: Campaign): ProspectSeed[] {
-    const isEnterprise = campaign.targetNiche.toLowerCase().includes('erp') || campaign.targetNiche.toLowerCase().includes('retail');
-
-    if (isEnterprise) {
-      return [
-        {
-          companyName: 'Lumina Dental & Maxillofacial Care',
-          website: 'https://luminadental-example.com',
-          industry: 'Healthcare & MedTech',
-          contactName: 'Dr. Arthur Campbell',
-          contactTitle: 'Medical Director',
-          email: `dr.arthur@lumina-${crypto.randomUUID().slice(0, 4)}.com`,
-          address: '42 Harley Street, Marylebone, London W1G 9PR, United Kingdom',
-          country: 'United Kingdom',
-          detectedPainPoints: 'Manual paper patient intake and appointment phone tag; needs patient portal & EHR integration',
-          techStackClues: 'Outdated WordPress template, missing online reservation engine',
-          score: 91
-        },
-        {
-          companyName: 'Kestrel Alpine Expeditions',
-          website: 'https://kestrelalpine-demo.com',
-          industry: 'Hospitality & Tourism',
-          contactName: 'Sonam Tenzing',
-          contactTitle: 'Managing Director',
-          email: `sonam@kestrel-${crypto.randomUUID().slice(0, 4)}.com`,
-          address: 'Tridevi Marg, Thamel, Kathmandu 44600, Nepal',
-          country: 'Nepal & Global',
-          detectedPainPoints: 'Needs multi-currency booking engine, trek itinerary manager, and automated payment gateway (Stripe/eSewa)',
-          techStackClues: 'Static HTML site, no dynamic booking or live availability calendar',
-          score: 94
-        },
-        {
-          companyName: 'Zephyr Supply Logistics',
-          website: 'https://zephyrlogistics-demo.net',
-          industry: 'Logistics & Supply Chain',
-          contactName: 'Raymond Scott',
-          contactTitle: 'Chief Operating Officer',
-          email: `raymond@zephyr-${crypto.randomUUID().slice(0, 4)}.net`,
-          address: '18 Export Drive, Tullamarine, Melbourne VIC 3043, Australia',
-          country: 'Australia',
-          detectedPainPoints: 'Disconnected warehouse inventory, no driver mobile dispatch app, lack of centralized ERP reporting',
-          techStackClues: 'Legacy PHP monolith with no mobile API',
-          score: 89
-        },
-        // Intentional invalid lead to demonstrate strict 100% discard enforcement
-        {
-          companyName: 'Unverified Retail Ghost',
-          website: 'https://invalid-ghost.com',
-          industry: 'Retail',
-          contactName: 'Unknown',
-          contactTitle: 'Staff',
-          email: 'invalid-email-at-nowhere',
-          address: '', // Missing address
-          country: 'Unknown',
-          detectedPainPoints: 'No stack',
-          techStackClues: 'None',
-          score: 20
-        }
-      ];
-    } else {
-      return [
-        {
-          companyName: 'Synthetix AI Solutions',
-          website: 'https://synthetix-demo.ai',
-          industry: 'AI & SaaS Startup',
-          contactName: 'Liam O\'Connor',
-          contactTitle: 'Co-Founder & CTO',
-          email: `liam@synthetix-${crypto.randomUUID().slice(0, 4)}.ai`,
-          address: '535 Mission St, 14th Floor, San Francisco, CA 94105, USA',
-          country: 'United States',
-          detectedPainPoints: 'Has core Python ML algorithms but lacks customer-facing Next.js dashboard, auth, and Stripe billing',
-          techStackClues: 'Python FastAPI without modern frontend UI',
-          score: 96
-        },
-        {
-          companyName: 'NovaEdu Learning Labs',
-          website: 'https://novaedu-demo.org',
-          industry: 'Education & EdTech',
-          contactName: 'Rachel Green',
-          contactTitle: 'Head of Product',
-          email: `rachel@novaedu-${crypto.randomUUID().slice(0, 4)}.org`,
-          address: '110 Spadina Ave, Suite 300, Toronto, ON M5V 2K4, Canada',
-          country: 'Canada',
-          detectedPainPoints: 'Needs interactive student video classroom, automated quizzes, and tutor scheduling portal',
-          techStackClues: 'Moodle legacy instance with high server costs and sluggish mobile interface',
-          score: 90
-        },
-        {
-          companyName: 'Solace Activewear',
-          website: 'https://solaceactive-demo.com',
-          industry: 'Retail & E-Commerce',
-          contactName: 'Marcus Bennett',
-          contactTitle: 'Founder',
-          email: `marcus@solaceactive-${crypto.randomUUID().slice(0, 4)}.com`,
-          address: '88 Franklin St, Tribeca, New York, NY 10013, USA',
-          country: 'United States',
-          detectedPainPoints: 'Slow mobile page load speeds hurting conversion rate; needs custom headless storefront and loyalty club',
-          techStackClues: 'Bloated Shopify theme with 20+ plugins slowing down load time to 4.5s',
-          score: 87
-        }
-      ];
-    }
+    return [];
   }
+
 
   /**
    * Queries Geoapify Places API for live commercial businesses with 100% verified addresses
@@ -292,7 +194,22 @@ export class LeadScoutAgent extends BaseAgent {
     const apiKey = process.env.GEOAPIFY_API_KEY;
     if (!apiKey) return [];
 
-    const location = campaign.targetLocations[0] || 'London, UK';
+    let searchCity = campaign.targetLocations[0] || 'London, UK';
+    const countryMap: Record<string, string> = {
+      'US': 'New York, NY',
+      'UK': 'London, UK',
+      'Australia': 'Sydney, Australia',
+      'Canada': 'Toronto, Canada',
+      'Singapore': 'Singapore',
+      'Nepal': 'Kathmandu, Nepal',
+      'India': 'Bangalore, India',
+      'Middle East': 'Dubai, United Arab Emirates',
+      'Global': 'London, UK'
+    };
+    if (countryMap[searchCity]) {
+      searchCity = countryMap[searchCity];
+    }
+    const location = searchCity;
     this.log('info', `[Geoapify] Geocoding location "${location}"...`);
 
     // 1. Geocode location to coordinates
