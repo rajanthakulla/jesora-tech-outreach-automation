@@ -711,6 +711,46 @@ export class AppDatabase {
     }));
   }
 
+  public getTodaySentCount(): number {
+    const startOfDay = new Date();
+    startOfDay.setUTCHours(0, 0, 0, 0);
+
+    const row = this.db.prepare(`
+      SELECT COUNT(*) as count FROM messages
+      WHERE status IN ('sent', 'delivered', 'opened', 'replied')
+      AND sent_at >= ?
+    `).get(startOfDay.toISOString()) as any;
+
+    return row?.count || 0;
+  }
+
+  public cancelPendingMessagesForLead(leadId: string): void {
+    this.db.prepare(`
+      UPDATE messages SET status = 'failed', error_message = 'Cancelled: Lead unsubscribed'
+      WHERE lead_id = ? AND status = 'scheduled'
+    `).run(leadId);
+  }
+
+  public getRecentMessages(limit: number = 100): OutreachMessage[] {
+    const rows = this.db.prepare('SELECT * FROM messages ORDER BY scheduled_for DESC LIMIT ?').all(limit) as any[];
+    return rows.map(r => ({
+      id: r.id,
+      leadId: r.lead_id,
+      campaignId: r.campaign_id,
+      sequenceStepNumber: r.sequence_step_number,
+      subject: r.subject,
+      body: r.body,
+      status: r.status,
+      scheduledFor: r.scheduled_for,
+      sentAt: r.sent_at || undefined,
+      deliveredAt: r.delivered_at || undefined,
+      openedAt: r.opened_at || undefined,
+      repliedAt: r.replied_at || undefined,
+      errorMessage: r.error_message || undefined,
+      createdAt: r.created_at
+    }));
+  }
+
   // --- Inbound Replies CRUD ---
   public insertReply(reply: InboundReply): void {
     const stmt = this.db.prepare(`

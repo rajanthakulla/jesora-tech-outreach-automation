@@ -288,7 +288,7 @@ export function createServer(orchestrator: Orchestrator) {
 
   // --- Messages ---
   app.get('/api/messages', (req: Request, res: Response) => {
-    const rows = db.db.prepare('SELECT * FROM messages ORDER BY scheduled_for DESC LIMIT 100').all();
+    const rows = db.getRecentMessages(100);
     res.json({ success: true, messages: rows });
   });
 

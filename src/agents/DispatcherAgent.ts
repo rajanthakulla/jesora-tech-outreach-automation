@@ -151,15 +151,6 @@ export class DispatcherAgent extends BaseAgent {
   }
 
   private getTodaySentCount(): number {
-    const startOfDay = new Date();
-    startOfDay.setUTCHours(0, 0, 0, 0);
-
-    const row = this.db.db.prepare(`
-      SELECT COUNT(*) as count FROM messages
-      WHERE status IN ('sent', 'delivered', 'opened', 'replied')
-      AND sent_at >= ?
-    `).get(startOfDay.toISOString()) as any;
-
-    return row?.count || 0;
+    return this.db.getTodaySentCount();
   }
 }

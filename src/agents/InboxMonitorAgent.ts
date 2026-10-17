@@ -273,9 +273,6 @@ Rajan Thakulla | JESORA TECH`;
   }
 
   private cancelPendingMessagesForLead(leadId: string): void {
-    this.db.db.prepare(`
-      UPDATE messages SET status = 'failed', error_message = 'Cancelled: Lead unsubscribed'
-      WHERE lead_id = ? AND status = 'scheduled'
-    `).run(leadId);
+    this.db.cancelPendingMessagesForLead(leadId);
   }
 }
