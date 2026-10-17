@@ -1,0 +1,32 @@
+{
+  "mode": "implement",
+  "objective": "Build a 24x7 autonomous multi-agent client acquisition & outreach system for Jesora Tech with real-time web dashboard, lead finder, email dispatch, inbox monitoring, meeting scheduler, and instant notifications",
+  "acceptance_criteria": [
+    "Modular multi-agent system implemented with LeadScout, PitchCrafter, Dispatcher, InboxMonitor, MeetingCloser, and NotificationSentinel",
+    "Persistent SQLite database schema with migrations for leads, campaigns, outreach sequences, email logs, meetings, and agent activity audits",
+    "24x7 autonomous scheduler engine with configurable intervals, warm-up throttling, anti-spam pacing, and timezone management",
+    "Jesora Tech specialized intelligence with case studies (WriteWell, MotoFix, Razzle, etc.), service capabilities, and AI personalization prompts",
+    "Unified API & Webhook layer for lead generation, sequence scheduling, inbox processing, and Telegram/Webhook notifications",
+    "High-end Executive Web Dashboard with live agent telemetry, CRM pipeline, campaign manager, unified inbox, and settings configuration",
+    "Automated end-to-end test suite passing all verification checks",
+    "Self-contained startup scripts and comprehensive README documentation"
+  ],
+  "non_goals": [
+    "Do not hardcode production API credentials or private keys in source control",
+    "Do not depend on external paid cloud services for core local functionality"
+  ],
+  "risk": "medium",
+  "budget": "deep",
+  "allowed_write_scope": [
+    "package.json",
+    "tsconfig.json",
+    "src/**",
+    "public/**",
+    "tests/**",
+    "scripts/**",
+    "README.md",
+    ".env.example",
+    ".gravitas/**"
+  ],
+  "verification": "impact"
+}

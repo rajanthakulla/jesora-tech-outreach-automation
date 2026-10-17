@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JESORA TECH | Autonomous 24x7 Outreach Command Center</title>
+  <meta name="description" content="Autonomous multi-agent client acquisition and outreach automation system for Jesora Tech. 24x7 lead finding, personalized cold email, inbox AI sentiment, and meeting scheduling.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%200%22%20100%22%20100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+</head>
+<body class="dark-theme">
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="brand-logo">
+        <span class="logo-icon">⚡</span>
+        <div class="brand-text">
+          <span class="brand-name">JESORA TECH</span>
+          <span class="brand-sub">Autonomous Outreach Fleet</span>
+        </div>
+      </div>
+      <div class="system-status-pill" id="system-status-indicator">
+        <span class="pulse-dot"></span>
+        <span class="status-label" id="status-label-text">24x7 AUTO-PILOT ACTIVE</span>
+      </div>
+    </div>
+
+    <div class="header-center">
+      <nav class="nav-tabs">
+        <button class="nav-tab active" data-tab="overview">
+          <span class="tab-icon">📊</span> Overview
+        </button>
+        <button class="nav-tab" data-tab="leads">
+          <span class="tab-icon">👥</span> Leads CRM
+          <span class="badge" id="tab-lead-count">0</span>
+        </button>
+        <button class="nav-tab" data-tab="inbox">
+          <span class="tab-icon">📥</span> Inbound Inbox
+          <span class="badge badge-hot" id="tab-reply-count">0</span>
+        </button>
+        <button class="nav-tab" data-tab="meetings">
+          <span class="tab-icon">📅</span> Meetings
+          <span class="badge badge-success" id="tab-meet-count">0</span>
+        </button>
+        <button class="nav-tab" data-tab="campaigns">
+          <span class="tab-icon">🎯</span> Campaigns
+        </button>
+        <button class="nav-tab" data-tab="sequences">
+          <span class="tab-icon">✉️</span> Sequences
+        </button>
+        <button class="nav-tab" data-tab="terminal">
+          <span class="tab-icon">💻</span> Agent Logs
+        </button>
+        <button class="nav-tab" data-tab="settings">
+          <span class="tab-icon">⚙️</span> Settings
+        </button>
+      </nav>
+    </div>
+
+    <div class="header-right">
+      <button class="btn btn-secondary btn-sm" id="btn-run-cycle" title="Trigger immediate synchronization across all agents">
+        <span class="btn-icon">⚡</span> Run Cycle Now
+      </button>
+      <button class="btn btn-outline btn-sm" id="btn-toggle-pilot" title="Toggle 24x7 autonomous background daemon">
+        <span class="btn-icon">⏹</span> Stop 24x7
+      </button>
+      <a href="https://jesoratech.com" target="_blank" class="btn btn-ghost btn-sm" title="Visit Jesora Tech website">
+        jesoratech.com ↗
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Content Viewport -->
+  <main class="app-main">
+    <!-- TAB 1: OVERVIEW -->
+    <section class="tab-panel active" id="tab-overview">
+      <!-- High-Level KPI Banners -->
+      <div class="kpi-grid">
+        <div class="kpi-card glass-panel glow-indigo">
+          <div class="kpi-header">
+            <span class="kpi-title">TOTAL PIPELINE LEADS</span>
+            <span class="kpi-icon">🎯</span>
+          </div>
+          <div class="kpi-value" id="kpi-total-leads">0</div>
+          <div class="kpi-footer">
+            <span class="kpi-badge positive" id="kpi-scouted-leads">+0 scouted</span>
+            <span class="kpi-sub">Ready for outreach</span>
+          </div>
+        </div>
+
+        <div class="kpi-card glass-panel glow-cyan">
+          <div class="kpi-header">
+            <span class="kpi-title">EMAILS DISPATCHED</span>
+            <span class="kpi-icon">📤</span>
+          </div>
+          <div class="kpi-value" id="kpi-emails-sent">0</div>
+          <div class="kpi-footer">
+            <span class="kpi-sub" id="kpi-contacted-leads">0 prospects contacted</span>
+          </div>
+        </div>
+
+        <div class="kpi-card glass-panel glow-emerald">
+          <div class="kpi-header">
+            <span class="kpi-title">PROSPECT REPLIES</span>
+            <span class="kpi-icon">💬</span>
+          </div>
+          <div class="kpi-value" id="kpi-replies-count">0</div>
+          <div class="kpi-footer">
+            <span class="kpi-badge positive" id="kpi-reply-rate">0.0%</span>
+            <span class="kpi-sub">Engagement rate</span>
+          </div>
+        </div>
+
+        <div class="kpi-card glass-panel glow-amber">
+          <div class="kpi-header">
+            <span class="kpi-title">MEETINGS BOOKED</span>
+            <span class="kpi-icon">🚀</span>
+          </div>
+          <div class="kpi-value highlight-amber" id="kpi-meetings-booked">0</div>
+          <div class="kpi-footer">
+            <span class="kpi-badge positive" id="kpi-conv-rate">0.0%</span>
+            <span class="kpi-sub">Conversion rate</span>
+          </div>
+        </div>
+
+        <div class="kpi-card glass-panel glow-violet">
+          <div class="kpi-header">
+            <span class="kpi-title">EST. PIPELINE VALUE</span>
+            <span class="kpi-icon">💎</span>
+          </div>
+          <div class="kpi-value text-gradient-purple" id="kpi-pipeline-value">$0</div>
+          <div class="kpi-footer">
+            <span class="kpi-sub">Web & ERP contracts</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Autonomous Agent Fleet Grid -->
+      <div class="section-container">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Autonomous Agent Fleet (24x7 Operations)</h2>
+            <p class="section-subtitle">Dedicated AI agents executing specialized pipeline functions around the clock.</p>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-sm btn-secondary" id="btn-scout-lead-now">
+              <span>🔍</span> Scout New Leads Now
+            </button>
+            <button class="btn btn-sm btn-primary" id="btn-simulate-hot-reply">
+              <span>🔥</span> Test Hot Inbound Reply
+            </button>
+          </div>
+        </div>
+
+        <div class="agents-grid" id="agents-grid-container">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+
+      <!-- Pipeline Funnel & Quick Feed -->
+      <div class="grid-2col">
+        <div class="glass-panel">
+          <div class="panel-header">
+            <h3 class="panel-title">Conversion Pipeline Flow</h3>
+            <span class="badge" id="badge-active-campaigns">2 Active Campaigns</span>
+          </div>
+          <div class="funnel-container" id="funnel-display">
+            <!-- Dynamic funnel bars -->
+          </div>
+        </div>
+
+        <div class="glass-panel">
+          <div class="panel-header">
+            <h3 class="panel-title">Live Agent Activity Feed</h3>
+            <button class="btn btn-xs btn-ghost" id="btn-view-all-logs">View Terminal →</button>
+          </div>
+          <div class="activity-feed" id="quick-activity-feed">
+            <!-- Dynamic activity log list -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: LEADS CRM -->
+    <section class="tab-panel" id="tab-leads">
+      <div class="panel-toolbar">
+        <div class="toolbar-search">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="lead-search-input" placeholder="Search by company, name, email, or tech stack...">
+        </div>
+        <div class="filter-pills" id="lead-status-filters">
+          <button class="filter-pill active" data-filter="all">All</button>
+          <button class="filter-pill" data-filter="scouted">Scouted</button>
+          <button class="filter-pill" data-filter="contacted">Contacted</button>
+          <button class="filter-pill" data-filter="replied">Replied 🔥</button>
+          <button class="filter-pill" data-filter="meeting_scheduled">Meeting Scheduled 📅</button>
+          <button class="filter-pill" data-filter="unsubscribed">Unsubscribed</button>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn btn-primary btn-sm" id="btn-open-add-lead-modal">
+            <span>+</span> Add Lead
+          </button>
+          <button class="btn btn-secondary btn-sm" id="btn-trigger-scout">
+            <span>⚡</span> Scout Prospects
+          </button>
+        </div>
+      </div>
+
+      <div class="table-container glass-panel">
+        <table class="data-table" id="leads-table">
+          <thead>
+            <tr>
+              <th>Company & Contact</th>
+              <th>Industry & Location</th>
+              <th>Lead Score</th>
+              <th>Tech Stack & Pain Points</th>
+              <th>Outreach Status</th>
+              <th>Next Action</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="leads-table-body">
+            <!-- Rows injected by JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB 3: INBOUND INBOX -->
+    <section class="tab-panel" id="tab-inbox">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Unified Inbound Sentinel & AI Sentiment</h2>
+          <p class="section-subtitle">Real-time incoming replies categorized by AI intent with auto-drafted responses.</p>
+        </div>
+        <div class="section-actions">
+          <button class="btn btn-primary btn-sm" id="btn-trigger-test-reply">
+            <span>🧪</span> Simulate Client Inbound Message
+          </button>
+        </div>
+      </div>
+
+      <div class="inbox-layout">
+        <div class="inbox-list glass-panel" id="inbox-list-container">
+          <!-- Conversation list -->
+        </div>
+        <div class="inbox-viewer glass-panel" id="inbox-viewer-container">
+          <div class="empty-state">
+            <span class="empty-icon">📥</span>
+            <h3>Select a conversation</h3>
+            <p>Click on any incoming thread from the left to view the full dialogue, sentiment analysis, and AI drafted response.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: MEETINGS -->
+    <section class="tab-panel" id="tab-meetings">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Scheduled Discovery Calls & Executive Briefs</h2>
+          <p class="section-subtitle">Dossiers prepared by the Meeting Closer Agent for Rajan Thakulla & the Jesora Tech team.</p>
+        </div>
+      </div>
+
+      <div class="meetings-grid" id="meetings-grid-container">
+        <!-- Injected via JS -->
+      </div>
+    </section>
+
+    <!-- TAB 5: CAMPAIGNS -->
+    <section class="tab-panel" id="tab-campaigns">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Target Niches & Active Campaigns</h2>
+          <p class="section-subtitle">Configure outbound targeting for Startups, Enterprise ERPs, Healthcare, and E-commerce.</p>
+        </div>
+        <button class="btn btn-primary btn-sm" id="btn-new-campaign-modal">
+          <span>+</span> New Campaign
+        </button>
+      </div>
+
+      <div class="campaigns-grid" id="campaigns-grid-container">
+        <!-- Injected via JS -->
+      </div>
+    </section>
+
+    <!-- TAB 6: SEQUENCES -->
+    <section class="tab-panel" id="tab-sequences">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Email Outreach Sequences</h2>
+          <p class="section-subtitle">Multi-step consultative messaging showcasing Jesora Tech's 100% source code ownership and case studies.</p>
+        </div>
+      </div>
+
+      <div class="sequences-container" id="sequences-container">
+        <!-- Sequence details -->
+      </div>
+    </section>
+
+    <!-- TAB 7: TERMINAL LOGS -->
+    <section class="tab-panel" id="tab-terminal">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Live Autonomous Agent Terminal</h2>
+          <p class="section-subtitle">Real-time audit log stream showing exact agent actions, discoveries, deliveries, and health.</p>
+        </div>
+        <div class="terminal-controls">
+          <button class="btn btn-xs btn-ghost active" data-log-filter="all">All Logs</button>
+          <button class="btn btn-xs btn-ghost" data-log-filter="info">Info</button>
+          <button class="btn btn-xs btn-ghost" data-log-filter="success">Success</button>
+          <button class="btn btn-xs btn-ghost" data-log-filter="warn">Warnings</button>
+          <button class="btn btn-xs btn-ghost" data-log-filter="error">Errors</button>
+          <button class="btn btn-xs btn-secondary" id="btn-clear-terminal">Clear View</button>
+        </div>
+      </div>
+
+      <div class="terminal-box glass-panel">
+        <div class="terminal-header">
+          <div class="terminal-dots">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-yellow"></span>
+            <span class="dot dot-green"></span>
+          </div>
+          <span class="terminal-title">jesora-orchestrator-daemon.log</span>
+          <span class="terminal-live-badge"><span class="pulse-dot"></span> LIVE SSE</span>
+        </div>
+        <div class="terminal-body" id="terminal-log-output">
+          <!-- Logs stream here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 8: SETTINGS -->
+    <section class="tab-panel" id="tab-settings">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">System Configuration & Integrations</h2>
+          <p class="section-subtitle">Configure email dispatch, AI providers, Telegram alerts, pacing limits, and company profile.</p>
+        </div>
+        <button class="btn btn-primary btn-sm" id="btn-save-settings">
+          <span>💾</span> Save All Settings
+        </button>
+      </div>
+
+      <div class="settings-grid">
+        <!-- Autonomous Pacing & Scheduler -->
+        <div class="glass-panel settings-card">
+          <h3 class="settings-card-title">🤖 24x7 Autonomous Pacing & Anti-Spam</h3>
+          <div class="form-group">
+            <label class="form-label">Run Cycle Interval (Minutes)</label>
+            <input type="number" id="setting-cycle-interval" class="form-input" min="1" max="1440" value="10">
+            <span class="form-help">How frequently the agent fleet checks for new leads, pending sends, and replies.</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Max Daily Cold Emails</label>
+            <input type="number" id="setting-daily-limit" class="form-input" min="5" max="500" value="40">
+            <span class="form-help">Maximum emails sent per 24h across all campaigns to preserve sender reputation.</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Minimum Delay Between Sends (Minutes)</label>
+            <input type="number" id="setting-send-delay" class="form-input" min="1" max="60" value="8">
+            <span class="form-help">Human-like spacing with randomized jitter between outgoing dispatches.</span>
+          </div>
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="setting-business-hours" checked>
+              <span>Only dispatch during prospect business hours (9:00 AM - 6:00 PM)</span>
+            </label>
+          </div>
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="setting-auto-reply" checked>
+              <span>Auto-reply to interested prospects with scheduling slots</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- SMTP & Email Delivery -->
+        <div class="glass-panel settings-card">
+          <h3 class="settings-card-title">📧 SMTP Email Dispatcher (Nodemailer)</h3>
+          <div class="form-group checkbox-group alert-box">
+            <label class="checkbox-label">
+              <input type="checkbox" id="setting-smtp-dryrun" checked>
+              <span><strong>Simulation Mode (Dry Run)</strong> — Test complete pipeline without actually sending emails</span>
+            </label>
+          </div>
+          <div class="grid-2col-compact">
+            <div class="form-group">
+              <label class="form-label">SMTP Host</label>
+              <input type="text" id="setting-smtp-host" class="form-input" value="smtp.gmail.com">
+            </div>
+            <div class="form-group">
+              <label class="form-label">SMTP Port</label>
+              <input type="number" id="setting-smtp-port" class="form-input" value="587">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Sender Email Address</label>
+            <input type="email" id="setting-smtp-user" class="form-input" value="techjesora@gmail.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Sender Display Name</label>
+            <input type="text" id="setting-smtp-fromname" class="form-input" value="Rajan Thakulla | JESORA TECH">
+          </div>
+          <div class="form-group">
+            <label class="form-label">SMTP Password / App Password</label>
+            <input type="password" id="setting-smtp-pass" class="form-input" placeholder="Google Workspace / Gmail App Password">
+          </div>
+        </div>
+
+        <!-- Telegram Instant Sentinel -->
+        <div class="glass-panel settings-card">
+          <h3 class="settings-card-title">📱 Telegram Instant Sentinel Alerts</h3>
+          <p class="settings-card-desc">Get instant mobile pings the moment a client replies or books a discovery call.</p>
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="setting-telegram-enabled">
+              <span>Enable Telegram Push Alerts</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Telegram Bot Token</label>
+            <input type="text" id="setting-telegram-token" class="form-input" placeholder="e.g. 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Telegram Chat ID</label>
+            <input type="text" id="setting-telegram-chatid" class="form-input" placeholder="e.g. 987654321">
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btn-test-telegram">
+            <span>📲</span> Send Test Telegram Ping
+          </button>
+        </div>
+
+        <!-- Jesora Tech Profile & Case Studies -->
+        <div class="glass-panel settings-card">
+          <h3 class="settings-card-title">🏢 Jesora Tech Company Credentials</h3>
+          <div class="form-group">
+            <label class="form-label">Company Name</label>
+            <input type="text" id="setting-company-name" class="form-input" value="JESORA TECH">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Website URL</label>
+            <input type="text" id="setting-company-url" class="form-input" value="https://jesoratech.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Headquarters</label>
+            <input type="text" id="setting-company-hq" class="form-input" value="Tinkune, Kathmandu 44600, Nepal">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Calendly / Meeting Booking Link</label>
+            <input type="text" id="setting-company-calendar" class="form-input" value="https://calendly.com/jesoratech/intro-call">
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL: ADD LEAD -->
+  <div class="modal-overlay" id="modal-add-lead">
+    <div class="modal-card glass-panel">
+      <div class="modal-header">
+        <h3 class="modal-title">Add Prospect to Outreach Pipeline</h3>
+        <button class="modal-close" id="modal-add-lead-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="grid-2col-compact">
+          <div class="form-group">
+            <label class="form-label">Company Name *</label>
+            <input type="text" id="new-lead-company" class="form-input" placeholder="e.g. Acme Health Corp" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Company Website</label>
+            <input type="text" id="new-lead-website" class="form-input" placeholder="https://acmehealth.com">
+          </div>
+        </div>
+        <div class="grid-2col-compact">
+          <div class="form-group">
+            <label class="form-label">Contact Name *</label>
+            <input type="text" id="new-lead-contact" class="form-input" placeholder="e.g. John Doe" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Contact Title</label>
+            <input type="text" id="new-lead-title" class="form-input" placeholder="e.g. CTO / Founder">
+          </div>
+        </div>
+        <div class="grid-2col-compact">
+          <div class="form-group">
+            <label class="form-label">Email Address *</label>
+            <input type="email" id="new-lead-email" class="form-input" placeholder="john@acmehealth.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Industry</label>
+            <input type="text" id="new-lead-industry" class="form-input" placeholder="e.g. Healthcare & MedTech">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Target Campaign</label>
+          <select id="new-lead-campaign" class="form-select">
+            <option value="camp-global-startups">Global Startups & SaaS MVP Development</option>
+            <option value="camp-enterprise-erp-retail">Enterprise ERP & High-Conversion E-Commerce</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Detected Tech Stack / Gaps</label>
+          <input type="text" id="new-lead-tech" class="form-input" placeholder="e.g. Slow legacy WordPress, no mobile app">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pain Points & Notes</label>
+          <textarea id="new-lead-pain" class="form-textarea" rows="2" placeholder="e.g. Wants to build a custom patient scheduling portal with Next.js"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-cancel-add-lead">Cancel</button>
+        <button class="btn btn-primary" id="btn-submit-add-lead">Save & Queue for Outreach</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SIMULATE REPLY -->
+  <div class="modal-overlay" id="modal-simulate-reply">
+    <div class="modal-card glass-panel">
+      <div class="modal-header">
+        <h3 class="modal-title">🧪 Test Inbound Reply & AI Sentiment</h3>
+        <button class="modal-close" id="modal-simulate-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Simulate a prospective client emailing back to test how the Inbox Sentinel, Sentiment AI, and Meeting Closer handle the response in real time.</p>
+        <div class="quick-preset-buttons">
+          <button class="btn btn-xs btn-outline preset-btn" data-preset="meeting">Meeting Request Preset 📅</button>
+          <button class="btn btn-xs btn-outline preset-btn" data-preset="interested">Interested / Pricing Preset 💬</button>
+          <button class="btn btn-xs btn-outline preset-btn" data-preset="stack">Tech Question Preset ⚙️</button>
+          <button class="btn btn-xs btn-outline preset-btn" data-preset="unsub">Unsubscribe Preset 🛑</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Prospect Email</label>
+          <input type="email" id="sim-email" class="form-input" value="marcus.chen@velocelogistics-demo.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Subject</label>
+          <input type="text" id="sim-subject" class="form-input" value="Re: Quick question regarding Veloce Logistics Corp's software roadmap">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Inbound Email Message</label>
+          <textarea id="sim-body" class="form-textarea" rows="4">Hi Rajan, thanks for reaching out. Yes, we are actually looking to build a new automated fleet dispatch platform and driver app. How does your pricing work and can we jump on a quick 15-minute Zoom call this Thursday afternoon?</textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-cancel-sim">Cancel</button>
+        <button class="btn btn-primary" id="btn-submit-sim">Process Inbound Message</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DRAWER: LEAD DETAILS -->
+  <div class="drawer-overlay" id="lead-drawer">
+    <div class="drawer-content glass-panel" id="drawer-inner">
+      <!-- Populated via JS -->
+    </div>
+  </div>
+
+  <!-- Notification Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "planning": "deep",
+  "context_depth": "dependency",
+  "verification_depth": "impact",
+  "delegation": "none",
+  "reason_codes": [
+    "greenfield-system",
+    "multi-agent-architecture",
+    "24x7-autonomous-engine",
+    "crm-dashboard-ui",
+    "end-to-end-pipeline"
+  ]
+}
