@@ -157,6 +157,91 @@ export function createServer(orchestrator: Orchestrator) {
     res.json({ success: true });
   });
 
+  app.post('/api/leads/import-csv', (req: Request, res: Response) => {
+    const { items, campaignId } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, error: 'No lead items provided.' });
+    }
+
+    const campaign = campaignId ? db.getCampaignById(campaignId) : db.getAllCampaigns()[0];
+    const existingEmails = new Set(db.getAllLeads().map(l => l.email.toLowerCase()));
+
+    let importedCount = 0;
+    let discardedCount = 0;
+    const discardedReasons: string[] = [];
+
+    for (const item of items) {
+      const email = String(item.email || '').trim().toLowerCase();
+      const companyName = String(item.companyName || '').trim();
+      const website = String(item.website || '').trim();
+      const address = String(item.address || '').trim();
+      const contactName = String(item.contactName || 'Decision Maker').trim();
+
+      // Integrity validation
+      const verification = orchestrator.leadScout.verifyProspectIntegrity({
+        companyName,
+        email,
+        address,
+        contactName,
+        website: website || 'https://unknown.com',
+        industry: item.industry || 'Technology & Services',
+        country: item.country || 'Global',
+        score: 80
+      });
+
+      if (!verification.isValid) {
+        discardedCount += 1;
+        discardedReasons.push(`"${companyName || 'Unknown'}": ${verification.reason}`);
+        continue;
+      }
+
+      if (existingEmails.has(email)) {
+        discardedCount += 1;
+        discardedReasons.push(`"${companyName}": Duplicate email (${email})`);
+        continue;
+      }
+
+      const now = new Date().toISOString();
+      const newLead: Lead = {
+        id: `lead-${crypto.randomUUID().slice(0, 8)}`,
+        companyName,
+        website: website.startsWith('http') ? website : `https://${website}`,
+        industry: item.industry || campaign?.targetNiche || 'Technology & Services',
+        contactName,
+        contactTitle: item.contactTitle || 'Founder / Decision Maker',
+        email,
+        phone: item.phone,
+        address,
+        country: item.country || 'Global',
+        techStack: item.techStack,
+        painPoints: item.painPoints,
+        score: 85,
+        status: 'discovered', // Advanced to Website Verifier next
+        websiteVerified: false,
+        campaignId: campaign?.id || 'camp-global-startups',
+        currentSequenceStep: 0,
+        createdAt: now,
+        updatedAt: now
+      };
+
+      db.insertLead(newLead);
+      existingEmails.add(email);
+      importedCount += 1;
+    }
+
+    orchestrator.notificationSentinel.log(
+      'info',
+      `Imported ${importedCount} verified lead(s) via CSV. (Discarded ${discardedCount})`
+    );
+
+    res.json({
+      success: true,
+      importedCount,
+      discardedCount,
+      discardedReasons: discardedReasons.slice(0, 10)
+    });
+  });
+
   app.post('/api/leads/scout-now', async (req: Request, res: Response) => {
     const { campaignId, count } = req.body;
     const campaign = campaignId ? db.getCampaignById(campaignId) : db.getAllCampaigns()[0];

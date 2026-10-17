@@ -1,12 +1,27 @@
 export type LeadStatus =
   | 'discovered'
   | 'scouted'
+  | 'website_verified'
+  | 'audited'
   | 'contacted'
   | 'replied'
   | 'meeting_scheduled'
   | 'won'
   | 'unsubscribed'
-  | 'bounced';
+  | 'bounced'
+  | 'discarded';
+
+export interface SiteFlawReport {
+  performanceScore: number;
+  mobileResponsive: boolean;
+  loadLatencyMs: number;
+  detectedTech: string[];
+  criticalFlaws: string[];
+  conversionBottlenecks: string[];
+  recommendedFixes: string[];
+  summary: string;
+  auditedAt: string;
+}
 
 export interface Lead {
   id: string;
@@ -17,11 +32,14 @@ export interface Lead {
   contactTitle?: string;
   email: string;
   phone?: string;
+  address?: string; // Verified 100% physical business/headquarters address
   country: string;
   techStack?: string;
   painPoints?: string;
   score: number;
   status: LeadStatus;
+  websiteVerified?: boolean;
+  flawReport?: SiteFlawReport;
   notes?: string;
   campaignId?: string;
   currentSequenceStep: number;
@@ -135,6 +153,8 @@ export interface Meeting {
 
 export type AgentRole =
   | 'lead_scout'
+  | 'website_verifier'
+  | 'site_auditor'
   | 'pitch_crafter'
   | 'dispatcher'
   | 'inbox_monitor'

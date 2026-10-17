@@ -1,6 +1,6 @@
 // ===================================================================
-// JESORA TECH - Autonomous 24x7 Outreach Command Center
-// Interactive Frontend Controller
+// JESORA TECH — Autonomous Outreach Fleet Controller
+// Interactive Frontend Engine
 // ===================================================================
 
 const state = {
@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- Navigation Tabs ---
 function initNavigation() {
-  const tabs = document.querySelectorAll('.nav-tab');
+  const tabs = document.querySelectorAll('.nav-item');
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       const target = tab.dataset.tab;
@@ -54,12 +54,27 @@ function initNavigation() {
 
 function setActiveTab(targetTab) {
   state.activeTab = targetTab;
-  document.querySelectorAll('.nav-tab').forEach(t => {
+  document.querySelectorAll('.nav-item').forEach(t => {
     t.classList.toggle('active', t.dataset.tab === targetTab);
   });
   document.querySelectorAll('.tab-panel').forEach(p => {
     p.classList.toggle('active', p.id === `tab-${targetTab}`);
   });
+
+  const titleMap = {
+    overview: 'Command Overview',
+    leads: 'Leads Directory & Pipeline CRM',
+    inbox: 'Inbound Sentinel & AI Sentiment',
+    meetings: 'Booked Discovery Meetings',
+    campaigns: 'Target Niches & Active Campaigns',
+    sequences: 'Outreach Sequence Architecture',
+    terminal: 'Live Agent Audit Terminal',
+    settings: 'System Configuration & Credentials'
+  };
+  const titleEl = document.getElementById('current-view-title');
+  if (titleEl) {
+    titleEl.textContent = titleMap[targetTab] || 'Command Center';
+  }
 
   // Load specific tab data on switch
   if (targetTab === 'leads') loadLeads();
@@ -81,7 +96,7 @@ function initSSE() {
 
   eventSource.addEventListener('cycle_completed', (e) => {
     const data = JSON.parse(e.data);
-    showToast(`Cycle #${data.cycleCount} finished (${data.totalActions} actions)`, 'info');
+    showToast(`Cycle #${data.cycleCount} finished (${data.totalActions} actions across fleet)`, 'info');
     loadStatus();
     if (state.activeTab === 'leads') loadLeads();
     if (state.activeTab === 'terminal') loadLogs();
@@ -89,7 +104,7 @@ function initSSE() {
 
   eventSource.addEventListener('hot_lead', (e) => {
     const data = JSON.parse(e.data);
-    showToast(`🔥 HOT LEAD: ${data.lead.companyName} (${data.reply.sentiment})`, 'success');
+    showToast(`🔥 HOT LEAD: ${data.lead.companyName} expressed interest!`, 'success');
     loadStatus();
     if (state.activeTab === 'inbox') loadInbox();
     if (state.activeTab === 'leads') loadLeads();
@@ -144,37 +159,60 @@ async function loadStatus() {
 
 function renderStatusIndicator(info) {
   const label = document.getElementById('status-label-text');
+  const cycleSub = document.getElementById('status-cycle-sub');
   const btnToggle = document.getElementById('btn-toggle-pilot');
+
   if (info.isRunning24x7) {
-    label.textContent = `24x7 AUTO-PILOT ACTIVE (Cycle #${info.cycleCount})`;
-    btnToggle.innerHTML = '<span class="btn-icon">⏹</span> Stop 24x7';
-    btnToggle.className = 'btn btn-outline btn-sm';
+    if (label) label.textContent = '24x7 Active';
+    if (cycleSub) cycleSub.textContent = `Cycle #${info.cycleCount} \u2022 ${info.cycleIntervalMinutes || 10}m interval`;
+    if (btnToggle) {
+      btnToggle.innerHTML = '<span class="toggle-icon">⏹</span> Stop';
+      btnToggle.className = 'micro-toggle-btn';
+    }
   } else {
-    label.textContent = 'AUTO-PILOT STANDBY';
-    btnToggle.innerHTML = '<span class="btn-icon">▶</span> Start 24x7';
-    btnToggle.className = 'btn btn-primary btn-sm';
+    if (label) label.textContent = 'Standby';
+    if (cycleSub) cycleSub.textContent = 'Manual Execution Mode';
+    if (btnToggle) {
+      btnToggle.innerHTML = '<span class="toggle-icon">▶</span> Start';
+      btnToggle.className = 'micro-toggle-btn';
+    }
   }
 }
 
 function renderKPIs(stats) {
-  document.getElementById('kpi-total-leads').textContent = stats.totalLeads || 0;
-  document.getElementById('kpi-scouted-leads').textContent = `+${stats.scoutedLeads || 0} scouted`;
-  document.getElementById('kpi-emails-sent').textContent = stats.totalEmailsSent || 0;
-  document.getElementById('kpi-contacted-leads').textContent = `${stats.contactedLeads || 0} contacted`;
-  document.getElementById('kpi-replies-count').textContent = stats.repliedLeads || 0;
-  document.getElementById('kpi-reply-rate').textContent = `${stats.replyRatePercent}%`;
-  document.getElementById('kpi-meetings-booked').textContent = stats.meetingsBooked || 0;
-  document.getElementById('kpi-conv-rate').textContent = `${stats.conversionRatePercent}%`;
+  const elTotal = document.getElementById('kpi-total-leads');
+  const elScouted = document.getElementById('kpi-scouted-leads');
+  const elEmails = document.getElementById('kpi-emails-sent');
+  const elContacted = document.getElementById('kpi-contacted-leads');
+  const elReplies = document.getElementById('kpi-replies-count');
+  const elReplyRate = document.getElementById('kpi-reply-rate');
+  const elMeetings = document.getElementById('kpi-meetings-booked');
+  const elConvRate = document.getElementById('kpi-conv-rate');
+  const elPipeline = document.getElementById('kpi-pipeline-value');
+
+  if (elTotal) elTotal.textContent = stats.totalLeads || 0;
+  if (elScouted) elScouted.textContent = `+${stats.scoutedLeads || 0} scouted`;
+  if (elEmails) elEmails.textContent = stats.totalEmailsSent || 0;
+  if (elContacted) elContacted.textContent = `${stats.contactedLeads || 0} contacted \u2022 Paced`;
+  if (elReplies) elReplies.textContent = stats.repliedLeads || 0;
+  if (elReplyRate) elReplyRate.textContent = `${stats.replyRatePercent}%`;
+  if (elMeetings) elMeetings.textContent = stats.meetingsBooked || 0;
+  if (elConvRate) elConvRate.textContent = `${stats.conversionRatePercent}%`;
 
   // Estimate pipeline value: Each meeting booked estimated at $3,500 average contract value
   const estimatedVal = (stats.meetingsBooked * 3500) + (stats.repliedLeads * 800);
-  document.getElementById('kpi-pipeline-value').textContent = `$${estimatedVal.toLocaleString()}`;
+  if (elPipeline) elPipeline.textContent = `$${estimatedVal.toLocaleString()}`;
 
   // Update nav badges
-  document.getElementById('tab-lead-count').textContent = stats.totalLeads || 0;
-  document.getElementById('tab-reply-count').textContent = stats.repliedLeads || 0;
-  document.getElementById('tab-meet-count').textContent = stats.meetingsBooked || 0;
-  document.getElementById('badge-active-campaigns').textContent = `${stats.activeCampaigns || 0} Active Campaigns`;
+  const navLead = document.getElementById('tab-lead-count');
+  const navReply = document.getElementById('tab-reply-count');
+  const navMeet = document.getElementById('tab-meet-count');
+  const badgeCamp = document.getElementById('badge-active-campaigns');
+
+  if (navLead) navLead.textContent = stats.totalLeads || 0;
+  if (navReply) navReply.textContent = stats.repliedLeads || 0;
+  if (navMeet) navMeet.textContent = stats.meetingsBooked || 0;
+  if (badgeCamp) badgeCamp.textContent = `${stats.activeCampaigns || 0} Campaigns`;
 }
 
 function renderAgents(agents) {
@@ -183,6 +221,8 @@ function renderAgents(agents) {
 
   const agentIcons = {
     lead_scout: '🔍',
+    website_verifier: '🌐',
+    site_auditor: '🔬',
     pitch_crafter: '✍️',
     dispatcher: '📤',
     inbox_monitor: '📥',
@@ -194,41 +234,41 @@ function renderAgents(agents) {
     const icon = agentIcons[agent.agentId] || '🤖';
     const isPaused = agent.status === 'paused';
     return `
-      <div class="agent-card glass-panel">
-        <div class="agent-header">
-          <div class="agent-identity">
-            <div class="agent-avatar">${icon}</div>
-            <div>
-              <div class="agent-name">${agent.name}</div>
-              <div class="agent-role">${agent.role}</div>
+      <div class="agent-mission-card">
+        <div class="agent-mission-header">
+          <div class="agent-avatar-cluster">
+            <div class="agent-glyph-icon">${icon}</div>
+            <div class="agent-headline">
+              <span class="agent-callsign">${agent.name}</span>
+              <span class="agent-designation">${agent.role}</span>
             </div>
           </div>
-          <span class="status-chip ${agent.status}">${agent.status}</span>
+          <span class="agent-status-orb ${agent.status}">${agent.status}</span>
         </div>
 
-        <p class="agent-desc">${agent.description}</p>
+        <p class="agent-summary-copy">${agent.description}</p>
 
-        <div class="agent-task-box">
-          <span class="agent-task-label">CURRENT OPERATION</span>
-          <div class="agent-task-text" title="${agent.currentTask}">${agent.currentTask || 'Idle'}</div>
+        <div class="agent-live-chip">
+          <span class="live-chip-label">ACTIVE TASK</span>
+          <div class="live-chip-text" title="${agent.currentTask}">${agent.currentTask || 'Standing by'}</div>
         </div>
 
-        <div class="agent-metrics-row">
-          <div class="metric-item">
-            <span class="metric-label">TOTAL RUNS</span>
-            <span class="metric-val">${agent.totalRuns}</span>
+        <div class="agent-stats-bar">
+          <div class="stat-cell">
+            <span class="stat-tag">RUNS</span>
+            <span class="stat-data">${agent.totalRuns}</span>
           </div>
-          <div class="metric-item">
-            <span class="metric-label">ACTIONS</span>
-            <span class="metric-val">${agent.totalActions}</span>
+          <div class="stat-cell">
+            <span class="stat-tag">ACTIONS</span>
+            <span class="stat-data">${agent.totalActions}</span>
           </div>
-          <div class="metric-item">
-            <span class="metric-label">LAST ACTIVE</span>
-            <span class="metric-val">${agent.lastRunAt ? formatTimeAgo(agent.lastRunAt) : 'Never'}</span>
+          <div class="stat-cell">
+            <span class="stat-tag">ACTIVE</span>
+            <span class="stat-data">${agent.lastRunAt ? formatTimeAgo(agent.lastRunAt) : 'Never'}</span>
           </div>
         </div>
 
-        <div class="agent-footer-actions">
+        <div class="agent-action-buttons">
           <button class="btn btn-xs btn-primary" onclick="runSingleAgent('${agent.agentId}')">
             <span>⚡</span> Run Now
           </button>
@@ -250,7 +290,7 @@ function renderFunnel(stats) {
   const steps = [
     { label: 'Total Discovered', count: stats.totalLeads, pct: 100 },
     { label: 'Scouted & Audited', count: stats.scoutedLeads + stats.contactedLeads, pct: Math.min(100, Math.round(((stats.scoutedLeads + stats.contactedLeads) / total) * 100)) },
-    { label: 'Contacted (Emails Sent)', count: stats.contactedLeads, pct: Math.min(100, Math.round((stats.contactedLeads / total) * 100)) },
+    { label: 'Contacted (Sent)', count: stats.contactedLeads, pct: Math.min(100, Math.round((stats.contactedLeads / total) * 100)) },
     { label: 'Replies Received', count: stats.repliedLeads, pct: Math.min(100, Math.round((stats.repliedLeads / total) * 100)) },
     { label: 'Meetings Booked 🚀', count: stats.meetingsBooked, pct: Math.min(100, Math.round((stats.meetingsBooked / total) * 100)) }
   ];
@@ -259,7 +299,7 @@ function renderFunnel(stats) {
     <div class="funnel-step">
       <span class="funnel-step-name">${s.label}</span>
       <div class="funnel-step-bar-wrap">
-        <div class="funnel-step-bar" style="width: ${Math.max(5, s.pct)}%"></div>
+        <div class="funnel-step-bar" style="width: ${Math.max(6, s.pct)}%"></div>
       </div>
       <span class="funnel-step-count">${s.count}</span>
     </div>
@@ -275,7 +315,7 @@ function renderQuickFeed(logs) {
     return;
   }
 
-  container.innerHTML = logs.slice(0, 7).map(l => `
+  container.innerHTML = logs.slice(0, 6).map(l => `
     <div class="activity-item">
       <span class="activity-badge ${l.level}">${l.level}</span>
       <span>${escapeHtml(l.message)}</span>
@@ -317,7 +357,7 @@ function renderLeadsTable() {
   if (leads.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
+        <td colspan="7" style="text-align: center; padding: 48px; color: var(--text-muted);">
           No leads match the current filter or search criteria.
         </td>
       </tr>
@@ -331,23 +371,35 @@ function renderLeadsTable() {
     return `
       <tr>
         <td>
-          <div class="table-company-cell">
-            <span class="lead-company-name">${escapeHtml(l.companyName)}</span>
-            <span class="lead-contact-sub">${escapeHtml(l.contactName)} (${escapeHtml(l.contactTitle || 'Lead')})</span>
-            <a href="${escapeHtml(l.website)}" target="_blank" style="color: var(--accent-cyan); font-size: 11px; text-decoration: none; margin-top: 2px;">
+          <div class="table-lead-entity">
+            <span class="lead-entity-name">${escapeHtml(l.companyName)}</span>
+            <span class="lead-entity-contact">${escapeHtml(l.contactName)} (${escapeHtml(l.contactTitle || 'Decision Maker')})</span>
+            <a href="${escapeHtml(l.website)}" target="_blank" class="lead-entity-link">
               ${escapeHtml(l.website.replace('https://', ''))} ↗
             </a>
+            ${l.address ? `<div style="font-size: 11px; color: var(--accent-cyan); margin-top: 3px; display: flex; align-items: center; gap: 4px;">📍 <span>${escapeHtml(l.address)}</span></div>` : ''}
           </div>
         </td>
         <td>
-          <div>${escapeHtml(l.industry)}</div>
+          <div style="font-weight: 600; color: #E2E8F0;">${escapeHtml(l.industry)}</div>
           <span style="font-size: 11px; color: var(--text-muted);">${escapeHtml(l.country)}</span>
+          ${l.websiteVerified !== undefined ? `
+            <div style="margin-top: 4px;">
+              <span style="font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; ${l.websiteVerified ? 'background: rgba(16, 185, 129, 0.15); color: #34D399;' : 'background: rgba(239, 68, 68, 0.15); color: #F87171;'}">
+                ${l.websiteVerified ? '✓ Live Website' : '✕ Discarded (No Site)'}
+              </span>
+            </div>` : ''}
         </td>
         <td>
-          <span class="lead-score-pill ${scoreClass}">${l.score} / 100</span>
+          <span class="score-badge ${scoreClass}">${l.score}</span>
         </td>
-        <td style="max-width: 280px;">
+        <td style="max-width: 260px;">
           <div style="font-size: 11px; color: #CBD5E1; line-height: 1.4;">${escapeHtml(l.techStack || 'Uninspected')}</div>
+          ${l.flawReport ? `
+            <div style="font-size: 11px; color: #C084FC; font-weight: 600; margin-top: 4px; background: rgba(168, 85, 247, 0.1); padding: 2px 6px; border-radius: 4px; display: inline-block;">
+              🔬 Flaw Score: ${l.flawReport.performanceScore}/100 (${l.flawReport.loadLatencyMs}ms TTFB)
+            </div>
+          ` : ''}
           ${l.painPoints ? `<div style="font-size: 11px; color: var(--accent-amber); margin-top: 3px;">⚠️ ${escapeHtml(l.painPoints)}</div>` : ''}
         </td>
         <td>
@@ -361,8 +413,8 @@ function renderLeadsTable() {
             ${l.nextFollowUpAt ? `Next: ${new Date(l.nextFollowUpAt).toLocaleDateString()}` : 'None pending'}
           </div>
         </td>
-        <td>
-          <div style="display: flex; gap: 6px;">
+        <td class="text-right">
+          <div style="display: flex; gap: 6px; justify-content: flex-end;">
             <button class="btn btn-xs btn-secondary" onclick="openLeadDrawer('${l.id}')">View</button>
             <button class="btn btn-xs btn-ghost" onclick="deleteLeadPrompt('${l.id}')">✕</button>
           </div>
@@ -403,17 +455,17 @@ function renderInboxList() {
     const sentimentBadgeClass = `sentiment-${r.sentiment}`;
     return `
       <div class="inbox-thread-card ${isActive}" onclick="selectReply('${r.id}')">
-        <div class="thread-header">
-          <span class="thread-sender">${escapeHtml(r.fromEmail)}</span>
-          <span class="thread-date">${formatTimeAgo(r.receivedAt)}</span>
+        <div class="thread-card-top">
+          <span class="thread-sender-name">${escapeHtml(r.fromEmail)}</span>
+          <span class="thread-time-label">${formatTimeAgo(r.receivedAt)}</span>
         </div>
-        <div class="thread-subject">${escapeHtml(r.subject)}</div>
-        <div style="margin-bottom: 6px;">
-          <span class="ai-sentiment-badge ${sentimentBadgeClass}" style="margin: 0; padding: 2px 6px; font-size: 10px;">
+        <div class="thread-subject-line">${escapeHtml(r.subject)}</div>
+        <div style="margin-bottom: 4px;">
+          <span class="ai-sentiment-chip ${sentimentBadgeClass}" style="margin: 0; padding: 2px 6px; font-size: 9px;">
             ${r.sentiment}
           </span>
         </div>
-        <div class="thread-preview">${escapeHtml(r.body)}</div>
+        <div class="thread-body-snippet">${escapeHtml(r.body)}</div>
       </div>
     `;
   }).join('');
@@ -438,19 +490,19 @@ function selectReply(replyId) {
           From: <strong>${escapeHtml(reply.fromEmail)}</strong> ${lead ? `(${escapeHtml(lead.companyName)})` : ''}
         </div>
       </div>
-      <span class="ai-sentiment-badge ${sentimentBadgeClass}">
+      <span class="ai-sentiment-chip ${sentimentBadgeClass}">
         Intent: ${reply.sentiment} (${Math.round(reply.sentimentConfidence * 100)}% confidence)
       </span>
     </div>
 
-    <div style="background: rgba(99, 102, 241, 0.1); border-left: 3px solid var(--accent-indigo); padding: 10px 14px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 12px; color: #E2E8F0;">
+    <div style="background: rgba(99, 102, 241, 0.08); border-left: 3px solid var(--accent-indigo); padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 12px; color: #E2E8F0;">
       <strong>🤖 AI Summary:</strong> ${escapeHtml(reply.aiSummary)}
     </div>
 
-    <div class="inbox-viewer-body">${escapeHtml(reply.body)}</div>
+    <div class="inbound-dialogue-card">${escapeHtml(reply.body)}</div>
 
-    <div class="ai-suggested-box">
-      <div class="ai-box-title">
+    <div class="ai-reply-blueprint">
+      <div class="ai-blueprint-header">
         <span>✨</span> AI Recommended Response (Jesora Tech Engineering Pitch):
       </div>
       <div style="font-size: 13px; line-height: 1.6; color: #E2E8F0; white-space: pre-wrap; margin-bottom: 14px;">
@@ -488,13 +540,15 @@ function renderMeetings() {
 
   if (state.meetings.length === 0) {
     container.innerHTML = `
-      <div class="glass-panel" style="grid-column: span 2; padding: 60px 20px; text-align: center;">
-        <div style="font-size: 40px; margin-bottom: 12px;">📅</div>
-        <h3 style="font-size: 18px; color: #FFF; margin-bottom: 6px;">No meetings booked yet</h3>
-        <p style="font-size: 13px; color: var(--text-secondary); max-width: 460px; margin: 0 auto 16px;">
-          When an interested prospect replies or requests a discovery call, the Meeting Closer Agent automatically reserves the slot and drafts a briefing document.
-        </p>
-        <button class="btn btn-sm btn-primary" onclick="openSimulateModal()">Test Hot Lead Meeting Flow</button>
+      <div class="double-bezel-card" style="grid-column: span 2;">
+        <div class="card-inner-core" style="padding: 60px 20px; text-align: center;">
+          <div style="font-size: 40px; margin-bottom: 12px;">📅</div>
+          <h3 style="font-size: 18px; color: #FFF; margin-bottom: 6px;">No discovery calls booked yet</h3>
+          <p style="font-size: 13px; color: var(--text-secondary); max-width: 460px; margin: 0 auto 16px;">
+            When an interested prospect replies or requests a meeting, the Meeting Closer Agent automatically reserves the slot and prepares the executive brief.
+          </p>
+          <button class="btn btn-sm btn-primary" onclick="openSimulateModal()">Test Hot Lead Meeting Flow</button>
+        </div>
       </div>
     `;
     return;
@@ -507,24 +561,28 @@ function renderMeetings() {
     });
 
     return `
-      <div class="meeting-card glass-panel">
-        <div class="meeting-card-title">${escapeHtml(lead ? lead.companyName : 'Discovery Call')}</div>
-        <div class="meeting-time-row">
-          <span>🕒</span> ${dateFormatted} (${m.durationMinutes} mins)
-        </div>
-        <div style="font-size: 13px; color: #CBD5E1; margin-bottom: 14px;">
-          <strong>Agenda:</strong> ${escapeHtml(m.agenda)}
-        </div>
-        
-        <div class="executive-brief-box">${escapeHtml(m.executiveBrief || 'No executive brief compiled.')}</div>
+      <div class="double-bezel-card meeting-card-container">
+        <div class="card-inner-core">
+          <div style="font-size: 17px; font-weight: 700; color: #FFF; margin-bottom: 4px;">
+            ${escapeHtml(lead ? lead.companyName : 'Discovery Call')}
+          </div>
+          <div class="meeting-time-chip">
+            <span>🕒</span> ${dateFormatted} (${m.durationMinutes} mins)
+          </div>
+          <div style="font-size: 12px; color: #CBD5E1; margin-bottom: 14px;">
+            <strong>Agenda:</strong> ${escapeHtml(m.agenda)}
+          </div>
+          
+          <div class="executive-brief-dossier">${escapeHtml(m.executiveBrief || 'No executive brief compiled.')}</div>
 
-        <div style="display: flex; gap: 10px; align-items: center;">
-          <a href="${m.meetUrl}" target="_blank" class="btn btn-sm btn-primary">
-            <span>📹</span> Launch Google Meet
-          </a>
-          <button class="btn btn-sm btn-secondary" onclick="openLeadDrawer('${m.leadId}')">
-            Lead CRM Dossier
-          </button>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <a href="${m.meetUrl}" target="_blank" class="btn btn-sm btn-primary">
+              <span>📹</span> Launch Google Meet
+            </a>
+            <button class="btn btn-sm btn-secondary" onclick="openLeadDrawer('${m.leadId}')">
+              Lead CRM Dossier
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -550,45 +608,47 @@ function renderCampaigns() {
   if (!container) return;
 
   container.innerHTML = state.campaigns.map(c => `
-    <div class="campaign-card glass-panel">
-      <div class="campaign-title-row">
-        <div>
-          <div class="campaign-name">${escapeHtml(c.name)}</div>
-          <span style="font-size: 11px; color: var(--accent-cyan); font-family: var(--font-mono);">${escapeHtml(c.targetNiche)}</span>
+    <div class="double-bezel-card">
+      <div class="card-inner-core">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+          <div>
+            <div style="font-size: 17px; font-weight: 700; color: #FFF;">${escapeHtml(c.name)}</div>
+            <span style="font-size: 11px; color: var(--accent-cyan); font-family: var(--font-mono);">${escapeHtml(c.targetNiche)}</span>
+          </div>
+          <span class="agent-status-orb ${c.status}">${c.status}</span>
         </div>
-        <span class="status-chip ${c.status}">${c.status}</span>
-      </div>
 
-      <p class="campaign-desc">${escapeHtml(c.description)}</p>
+        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.4;">${escapeHtml(c.description)}</p>
 
-      <div class="campaign-tags">
-        ${(c.targetLocations || []).map(loc => `<span class="tag-pill">📍 ${escapeHtml(loc)}</span>`).join('')}
-        ${(c.keywords || []).map(kw => `<span class="tag-pill">#${escapeHtml(kw)}</span>`).join('')}
-      </div>
+        <div class="tag-cloud">
+          ${(c.targetLocations || []).map(loc => `<span class="tag-badge">📍 ${escapeHtml(loc)}</span>`).join('')}
+          ${(c.keywords || []).map(kw => `<span class="tag-badge">#${escapeHtml(kw)}</span>`).join('')}
+        </div>
 
-      <div class="agent-metrics-row">
-        <div class="metric-item">
-          <span class="metric-label">LEADS TARGETED</span>
-          <span class="metric-val">${c.leadsTargeted}</span>
+        <div class="agent-stats-bar">
+          <div class="stat-cell">
+            <span class="stat-tag">TARGETED</span>
+            <span class="stat-data">${c.leadsTargeted}</span>
+          </div>
+          <div class="stat-cell">
+            <span class="stat-tag">CONTACTED</span>
+            <span class="stat-data">${c.leadsContacted}</span>
+          </div>
+          <div class="stat-cell">
+            <span class="stat-tag">REPLIES</span>
+            <span class="stat-data">${c.leadsReplied}</span>
+          </div>
+          <div class="stat-cell">
+            <span class="stat-tag">MEETINGS</span>
+            <span class="stat-data" style="color: var(--accent-amber);">${c.meetingsBooked}</span>
+          </div>
         </div>
-        <div class="metric-item">
-          <span class="metric-label">CONTACTED</span>
-          <span class="metric-val">${c.leadsContacted}</span>
-        </div>
-        <div class="metric-item">
-          <span class="metric-label">REPLIES</span>
-          <span class="metric-val">${c.leadsReplied}</span>
-        </div>
-        <div class="metric-item">
-          <span class="metric-label">MEETINGS</span>
-          <span class="metric-val highlight-amber">${c.meetingsBooked}</span>
-        </div>
-      </div>
 
-      <div style="display: flex; gap: 8px;">
-        <button class="btn btn-sm btn-secondary" onclick="triggerScoutForCampaign('${c.id}')">
-          <span>🔍</span> Scout Leads For This Niche
-        </button>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-sm btn-secondary" onclick="triggerScoutForCampaign('${c.id}')">
+            <span>🔍</span> Scout Leads For This Niche
+          </button>
+        </div>
       </div>
     </div>
   `).join('');
@@ -613,26 +673,34 @@ function renderSequences() {
   if (!container) return;
 
   container.innerHTML = state.sequences.map(seq => `
-    <div class="glass-panel" style="padding: 24px;">
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-        <div>
-          <h3 style="font-size: 20px; font-weight: 700; color: #FFF;">${escapeHtml(seq.name)}</h3>
-          <p style="font-size: 13px; color: var(--text-secondary);">${escapeHtml(seq.description)}</p>
-        </div>
-        <span class="badge" style="background: rgba(99, 102, 241, 0.2); color: var(--accent-indigo-light);">${seq.steps.length} Touchpoints</span>
-      </div>
-
-      <div class="sequence-timeline">
-        ${seq.steps.map(step => `
-          <div class="sequence-step-card">
-            <div class="step-header">
-              <span class="step-num">STEP ${step.stepNumber} (Delay: ${step.delayDays === 0 ? 'Day 0 - Instant' : `+${step.delayDays} days`})</span>
-              <span style="font-size: 11px; color: var(--text-muted);">${escapeHtml(step.purpose)}</span>
-            </div>
-            <div class="step-subject">Subject: "${escapeHtml(step.subjectTemplate)}"</div>
-            <div class="step-body-preview">${escapeHtml(step.bodyTemplate)}</div>
+    <div class="double-bezel-card">
+      <div class="card-inner-core">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+          <div>
+            <h3 style="font-size: 18px; font-weight: 700; color: #FFF;">${escapeHtml(seq.name)}</h3>
+            <p style="font-size: 13px; color: var(--text-secondary);">${escapeHtml(seq.description)}</p>
           </div>
-        `).join('')}
+          <span class="subtle-chip">${seq.steps.length} Touchpoints</span>
+        </div>
+
+        <div class="sequence-timeline">
+          ${seq.steps.map(step => `
+            <div class="sequence-node">
+              <div class="sequence-node-header">
+                <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--accent-indigo-light);">
+                  STEP ${step.stepNumber} (Delay: ${step.delayDays === 0 ? 'Day 0 - Instant' : `+${step.delayDays} days`})
+                </span>
+                <span style="font-size: 11px; color: var(--text-muted);">${escapeHtml(step.purpose)}</span>
+              </div>
+              <div style="font-size: 13px; font-weight: 600; color: #FFF; margin-bottom: 6px;">
+                Subject: "${escapeHtml(step.subjectTemplate)}"
+              </div>
+              <div style="font-size: 12px; line-height: 1.5; color: var(--text-secondary); white-space: pre-wrap; background: rgba(0, 0, 0, 0.3); padding: 12px; border-radius: 6px;">
+                ${escapeHtml(step.bodyTemplate)}
+              </div>
+            </div>
+          `).join('')}
+        </div>
       </div>
     </div>
   `).join('');
@@ -664,15 +732,14 @@ function renderLogs() {
   container.innerHTML = filtered.map(l => {
     const time = new Date(l.timestamp).toLocaleTimeString();
     return `
-      <div class="log-line">
-        <span class="log-ts">[${time}]</span>
-        <span class="log-agent">&lt;${l.agentId}&gt;</span>
-        <span class="log-text ${l.level}">${escapeHtml(l.message)}</span>
+      <div class="log-row">
+        <span class="log-clock">[${time}]</span>
+        <span class="log-source">&lt;${l.agentId}&gt;</span>
+        <span class="log-body ${l.level}">${escapeHtml(l.message)}</span>
       </div>
     `;
   }).join('');
 
-  // Auto-scroll to bottom
   container.scrollTop = container.scrollHeight;
 }
 
@@ -691,26 +758,44 @@ async function loadSettings() {
 }
 
 function populateSettingsForm(s) {
-  document.getElementById('setting-cycle-interval').value = s.autonomous.cycleIntervalMinutes || 10;
-  document.getElementById('setting-daily-limit').value = s.pacing.maxEmailsPerDay || 40;
-  document.getElementById('setting-send-delay').value = s.pacing.minDelayMinutesBetweenSends || 8;
-  document.getElementById('setting-business-hours').checked = s.pacing.businessHoursOnly;
-  document.getElementById('setting-auto-reply').checked = s.autonomous.autoReplyInterested;
+  const elInterval = document.getElementById('setting-cycle-interval');
+  const elDaily = document.getElementById('setting-daily-limit');
+  const elDelay = document.getElementById('setting-send-delay');
+  const elHours = document.getElementById('setting-business-hours');
+  const elReply = document.getElementById('setting-auto-reply');
+  const elDry = document.getElementById('setting-smtp-dryrun');
+  const elHost = document.getElementById('setting-smtp-host');
+  const elPort = document.getElementById('setting-smtp-port');
+  const elUser = document.getElementById('setting-smtp-user');
+  const elName = document.getElementById('setting-smtp-fromname');
+  const elTgEn = document.getElementById('setting-telegram-enabled');
+  const elTgTok = document.getElementById('setting-telegram-token');
+  const elTgChat = document.getElementById('setting-telegram-chatid');
+  const elCompName = document.getElementById('setting-company-name');
+  const elCompUrl = document.getElementById('setting-company-url');
+  const elCompHq = document.getElementById('setting-company-hq');
+  const elCompCal = document.getElementById('setting-company-calendar');
 
-  document.getElementById('setting-smtp-dryrun').checked = s.smtp.dryRun;
-  document.getElementById('setting-smtp-host').value = s.smtp.host || 'smtp.gmail.com';
-  document.getElementById('setting-smtp-port').value = s.smtp.port || 587;
-  document.getElementById('setting-smtp-user').value = s.smtp.user || '';
-  document.getElementById('setting-smtp-fromname').value = s.smtp.fromName || '';
+  if (elInterval) elInterval.value = s.autonomous.cycleIntervalMinutes || 10;
+  if (elDaily) elDaily.value = s.pacing.maxEmailsPerDay || 40;
+  if (elDelay) elDelay.value = s.pacing.minDelayMinutesBetweenSends || 8;
+  if (elHours) elHours.checked = s.pacing.businessHoursOnly;
+  if (elReply) elReply.checked = s.autonomous.autoReplyInterested;
 
-  document.getElementById('setting-telegram-enabled').checked = s.telegram.enabled;
-  document.getElementById('setting-telegram-token').value = s.telegram.botToken || '';
-  document.getElementById('setting-telegram-chatid').value = s.telegram.chatId || '';
+  if (elDry) elDry.checked = s.smtp.dryRun;
+  if (elHost) elHost.value = s.smtp.host || 'smtp.gmail.com';
+  if (elPort) elPort.value = s.smtp.port || 587;
+  if (elUser) elUser.value = s.smtp.user || '';
+  if (elName) elName.value = s.smtp.fromName || '';
 
-  document.getElementById('setting-company-name').value = s.jesoraProfile.companyName || 'JESORA TECH';
-  document.getElementById('setting-company-url').value = s.jesoraProfile.siteUrl || 'https://jesoratech.com';
-  document.getElementById('setting-company-hq').value = s.jesoraProfile.headquarters || '';
-  document.getElementById('setting-company-calendar').value = s.jesoraProfile.calendarBookingUrl || '';
+  if (elTgEn) elTgEn.checked = s.telegram.enabled;
+  if (elTgTok) elTgTok.value = s.telegram.botToken || '';
+  if (elTgChat) elTgChat.value = s.telegram.chatId || '';
+
+  if (elCompName) elCompName.value = s.jesoraProfile.companyName || 'JESORA TECH';
+  if (elCompUrl) elCompUrl.value = s.jesoraProfile.siteUrl || 'https://jesoratech.com';
+  if (elCompHq) elCompHq.value = s.jesoraProfile.headquarters || '';
+  if (elCompCal) elCompCal.value = s.jesoraProfile.calendarBookingUrl || '';
 }
 
 async function saveSettingsFromForm() {
@@ -787,56 +872,109 @@ async function openLeadDrawer(leadId) {
     inner.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
         <div>
-          <h2 style="font-size: 22px; font-weight: 700; color: #FFF; margin-bottom: 4px;">${escapeHtml(lead.companyName)}</h2>
+          <h2 style="font-size: 20px; font-weight: 800; color: #FFF; margin-bottom: 4px;">${escapeHtml(lead.companyName)}</h2>
           <div style="font-size: 13px; color: var(--text-secondary);">${escapeHtml(lead.industry)} | ${escapeHtml(lead.country)}</div>
         </div>
-        <button class="modal-close" onclick="closeLeadDrawer()">&times;</button>
+        <button class="modal-close-btn" onclick="closeLeadDrawer()">&times;</button>
       </div>
 
-      <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 18px; margin-bottom: 24px;">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+      <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-hairline); border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px;">
           <div>
-            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">CONTACT PERSON</div>
+            <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">CONTACT PERSON</div>
             <div style="font-size: 14px; font-weight: 600; color: #FFF;">${escapeHtml(lead.contactName)}</div>
-            <div style="font-size: 12px; color: var(--text-secondary);">${escapeHtml(lead.contactTitle || 'Decision Maker')}</div>
+            <div style="font-size: 11px; color: var(--text-secondary);">${escapeHtml(lead.contactTitle || 'Decision Maker')}</div>
           </div>
           <div>
-            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">EMAIL ADDRESS</div>
-            <div style="font-size: 13px; font-family: var(--font-mono); color: var(--accent-cyan);">${escapeHtml(lead.email)}</div>
+            <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">EMAIL ADDRESS</div>
+            <div style="font-size: 12px; font-family: var(--font-mono); color: var(--accent-cyan);">${escapeHtml(lead.email)}</div>
           </div>
         </div>
-        <div>
-          <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">WEBSITE</div>
-          <a href="${escapeHtml(lead.website)}" target="_blank" style="color: var(--accent-indigo-light); font-size: 13px; text-decoration: none;">
-            ${escapeHtml(lead.website)} ↗
-          </a>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; border-top: 1px solid var(--border-hairline); padding-top: 12px;">
+          <div>
+            <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">WEBSITE</div>
+            <a href="${escapeHtml(lead.website)}" target="_blank" style="color: var(--accent-indigo-light); font-size: 12px; text-decoration: none;">
+              ${escapeHtml(lead.website)} ↗
+            </a>
+            ${lead.websiteVerified !== undefined ? `
+              <div style="margin-top: 3px; font-size: 10px; font-weight: 700; color: ${lead.websiteVerified ? '#34D399' : '#F87171'};">
+                ${lead.websiteVerified ? '✓ Active Live Website' : '✕ No Active Website (Discarded)'}
+              </div>` : ''}
+          </div>
+          <div>
+            <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">VERIFIED PHYSICAL / HQ ADDRESS</div>
+            <div style="font-size: 12px; color: var(--accent-cyan); font-weight: 500;">
+              ${lead.address ? `📍 ${escapeHtml(lead.address)}` : 'Address pending verification'}
+            </div>
+          </div>
         </div>
       </div>
 
-      <div style="margin-bottom: 24px;">
-        <h4 style="font-size: 14px; font-weight: 700; color: #FFF; margin-bottom: 8px;">Technical Stack & Audit Findings</h4>
-        <div style="background: rgba(10, 14, 23, 0.6); padding: 14px; border-radius: var(--radius-sm); font-size: 12px; line-height: 1.5; color: #CBD5E1;">
+      ${lead.flawReport ? `
+        <div style="background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 18px;">🔬</span>
+              <div>
+                <h4 style="font-size: 13px; font-weight: 700; color: #E9D5FF; margin: 0;">Site Flaw Diagnostic Report</h4>
+                <div style="font-size: 10px; color: var(--text-muted);">Audited ${formatTimeAgo(lead.flawReport.auditedAt)}</div>
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 18px; font-weight: 800; color: ${lead.flawReport.performanceScore < 60 ? '#F87171' : '#FBBF24'};">
+                ${lead.flawReport.performanceScore}/100
+              </div>
+              <div style="font-size: 10px; color: var(--text-muted);">Health Score (${lead.flawReport.loadLatencyMs}ms TTFB)</div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 12px;">
+            <div style="font-size: 10px; font-weight: 700; color: #FCA5A5; text-transform: uppercase; margin-bottom: 4px;">Critical Architectural Flaws</div>
+            <ul style="margin: 0; padding-left: 18px; font-size: 11px; color: #CBD5E1; line-height: 1.5;">
+              ${lead.flawReport.criticalFlaws.map(f => `<li style="margin-bottom: 3px;">${escapeHtml(f)}</li>`).join('')}
+            </ul>
+          </div>
+
+          <div style="margin-bottom: 12px;">
+            <div style="font-size: 10px; font-weight: 700; color: #FCD34D; text-transform: uppercase; margin-bottom: 4px;">Conversion Bottlenecks</div>
+            <ul style="margin: 0; padding-left: 18px; font-size: 11px; color: #CBD5E1; line-height: 1.5;">
+              ${lead.flawReport.conversionBottlenecks.map(b => `<li style="margin-bottom: 3px;">${escapeHtml(b)}</li>`).join('')}
+            </ul>
+          </div>
+
+          <div>
+            <div style="font-size: 10px; font-weight: 700; color: #86EFAC; text-transform: uppercase; margin-bottom: 4px;">Recommended Engineering Fixes</div>
+            <ul style="margin: 0; padding-left: 18px; font-size: 11px; color: #CBD5E1; line-height: 1.5;">
+              ${lead.flawReport.recommendedFixes.map(fix => `<li style="margin-bottom: 3px;">${escapeHtml(fix)}</li>`).join('')}
+            </ul>
+          </div>
+        </div>
+      ` : ''}
+
+      <div style="margin-bottom: 20px;">
+        <h4 style="font-size: 13px; font-weight: 700; color: #FFF; margin-bottom: 8px;">Technical Stack & Audit Findings</h4>
+        <div style="background: rgba(0, 0, 0, 0.35); padding: 12px; border-radius: 6px; font-size: 12px; line-height: 1.5; color: #CBD5E1;">
           ${escapeHtml(lead.techStack || 'No technical stack recorded.')}
         </div>
       </div>
 
-      <div style="margin-bottom: 24px;">
-        <h4 style="font-size: 14px; font-weight: 700; color: #FFF; margin-bottom: 8px;">Pain Points & Opportunities</h4>
-        <div style="background: rgba(245, 158, 11, 0.08); border-left: 3px solid var(--accent-amber); padding: 14px; border-radius: var(--radius-sm); font-size: 12px; line-height: 1.5; color: #FCD34D;">
+      <div style="margin-bottom: 20px;">
+        <h4 style="font-size: 13px; font-weight: 700; color: #FFF; margin-bottom: 8px;">Pain Points & Opportunities</h4>
+        <div style="background: rgba(245, 158, 11, 0.08); border-left: 3px solid var(--accent-amber); padding: 12px; border-radius: 6px; font-size: 12px; line-height: 1.5; color: #FCD34D;">
           ${escapeHtml(lead.painPoints || 'Custom software development, UI/UX revamp, or ERP automation.')}
         </div>
       </div>
 
       <div>
-        <h4 style="font-size: 14px; font-weight: 700; color: #FFF; margin-bottom: 12px;">Outreach Email History (${messages.length})</h4>
+        <h4 style="font-size: 13px; font-weight: 700; color: #FFF; margin-bottom: 10px;">Outreach Email History (${messages.length})</h4>
         ${messages.length === 0 ? '<div style="font-size: 12px; color: var(--text-muted);">No sequence emails generated for this prospect yet.</div>' : ''}
         ${messages.map(m => `
-          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 10px;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-              <span style="font-size: 11px; font-weight: 700; color: var(--accent-indigo-light);">STEP ${m.sequenceStepNumber} — ${m.status.toUpperCase()}</span>
+          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-hairline); border-radius: 6px; padding: 12px; margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <span style="font-size: 10px; font-weight: 700; color: var(--accent-indigo-light);">STEP ${m.sequenceStepNumber} — ${m.status.toUpperCase()}</span>
               <span style="font-size: 10px; color: var(--text-muted); font-family: var(--font-mono);">${m.sentAt ? new Date(m.sentAt).toLocaleDateString() : 'Scheduled'}</span>
             </div>
-            <div style="font-size: 12px; font-weight: 600; color: #FFF; margin-bottom: 6px;">${escapeHtml(m.subject)}</div>
+            <div style="font-size: 12px; font-weight: 600; color: #FFF; margin-bottom: 4px;">${escapeHtml(m.subject)}</div>
             <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.4; white-space: pre-wrap;">${escapeHtml(m.body)}</div>
           </div>
         `).join('')}
@@ -909,7 +1047,94 @@ function initModals() {
     });
   }
 
-  // Simulate Inbound Modal
+  // CSV Import Modal
+  const btnOpenCsv = document.getElementById('btn-open-csv-modal');
+  const modalCsv = document.getElementById('modal-import-csv');
+  const closeCsv = document.getElementById('modal-import-csv-close');
+  const cancelCsv = document.getElementById('btn-cancel-import-csv');
+  const submitCsv = document.getElementById('btn-submit-import-csv');
+  const fileInputCsv = document.getElementById('csv-file-input');
+  const pasteAreaCsv = document.getElementById('csv-paste-textarea');
+  const previewSummary = document.getElementById('csv-preview-summary');
+
+  if (btnOpenCsv) btnOpenCsv.addEventListener('click', () => modalCsv.classList.add('open'));
+  if (closeCsv) closeCsv.addEventListener('click', () => modalCsv.classList.remove('open'));
+  if (cancelCsv) cancelCsv.addEventListener('click', () => modalCsv.classList.remove('open'));
+
+  if (fileInputCsv) {
+    fileInputCsv.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target?.result;
+        if (typeof text === 'string') {
+          pasteAreaCsv.value = text;
+          updateCsvPreview(text);
+        }
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  if (pasteAreaCsv) {
+    pasteAreaCsv.addEventListener('input', () => updateCsvPreview(pasteAreaCsv.value));
+  }
+
+  function updateCsvPreview(text) {
+    if (!previewSummary) return;
+    const rows = parseCsvToObjects(text);
+    if (rows.length > 0) {
+      previewSummary.style.display = 'block';
+      previewSummary.innerHTML = `
+        <strong>Detected:</strong> ${rows.length} lead row(s).<br>
+        <span style="color: var(--text-muted);">First lead preview: ${escapeHtml(rows[0].companyName || 'Unknown')} — ${escapeHtml(rows[0].email || 'No email')} (${escapeHtml(rows[0].address || 'No address')})</span>
+      `;
+    } else {
+      previewSummary.style.display = 'none';
+    }
+  }
+
+  if (submitCsv) {
+    submitCsv.addEventListener('click', async () => {
+      const text = pasteAreaCsv.value.trim();
+      const rows = parseCsvToObjects(text);
+
+      if (rows.length === 0) {
+        showToast('Please upload a valid CSV file or paste lead rows.', 'error');
+        return;
+      }
+
+      submitCsv.disabled = true;
+      submitCsv.innerHTML = '<span>⏳</span> Validating & Importing...';
+
+      try {
+        const res = await fetch('/api/leads/import-csv', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: rows })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          showToast(`✓ Imported ${data.importedCount} verified lead(s)! (Discarded ${data.discardedCount} invalid)`, 'success');
+          modalCsv.classList.remove('open');
+          pasteAreaCsv.value = '';
+          if (fileInputCsv) fileInputCsv.value = '';
+          if (previewSummary) previewSummary.style.display = 'none';
+          loadLeads();
+          loadStatus();
+        } else {
+          showToast(data.error || 'Failed to import CSV', 'error');
+        }
+      } catch (err) {
+        showToast(`Import error: ${err.message}`, 'error');
+      } finally {
+        submitCsv.disabled = false;
+        submitCsv.innerHTML = '<span>🚀</span> Import & Verify Leads';
+      }
+    });
+  }
   const modalSim = document.getElementById('modal-simulate-reply');
   const closeSim = document.getElementById('modal-simulate-close');
   const cancelSim = document.getElementById('btn-cancel-sim');
@@ -918,7 +1143,7 @@ function initModals() {
   if (closeSim) closeSim.addEventListener('click', () => modalSim.classList.remove('open'));
   if (cancelSim) cancelSim.addEventListener('click', () => modalSim.classList.remove('open'));
 
-  document.querySelectorAll('.preset-btn').forEach(btn => {
+  document.querySelectorAll('.preset-chip').forEach(btn => {
     btn.addEventListener('click', () => {
       const preset = btn.dataset.preset;
       applySimPreset(preset);
@@ -994,12 +1219,12 @@ function initDrawer() {
 
 // --- Interactive Actions ---
 function initActions() {
-  // Top header buttons
+  // Run Cycle Now
   const btnRunCycle = document.getElementById('btn-run-cycle');
   if (btnRunCycle) {
     btnRunCycle.addEventListener('click', async () => {
       btnRunCycle.disabled = true;
-      btnRunCycle.textContent = 'Running Cycle...';
+      btnRunCycle.textContent = 'Syncing...';
       try {
         const res = await fetch('/api/orchestrator/cycle', { method: 'POST' });
         const data = await res.json();
@@ -1009,11 +1234,12 @@ function initActions() {
         showToast(`Cycle error: ${err.message}`, 'error');
       } finally {
         btnRunCycle.disabled = false;
-        btnRunCycle.innerHTML = '<span class="btn-icon">⚡</span> Run Cycle Now';
+        btnRunCycle.innerHTML = '<span>⚡</span> Sync Full Cycle';
       }
     });
   }
 
+  // Toggle 24x7 Autopilot
   const btnTogglePilot = document.getElementById('btn-toggle-pilot');
   if (btnTogglePilot) {
     btnTogglePilot.addEventListener('click', async () => {
@@ -1064,9 +1290,9 @@ function initActions() {
     });
   }
 
-  document.querySelectorAll('.filter-pill').forEach(pill => {
+  document.querySelectorAll('.segment-tab').forEach(pill => {
     pill.addEventListener('click', () => {
-      document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.segment-tab').forEach(p => p.classList.remove('active'));
       pill.classList.add('active');
       state.selectedLeadFilter = pill.dataset.filter;
       loadLeads();
@@ -1102,7 +1328,7 @@ function initActions() {
   if (btnTestTelegram) {
     btnTestTelegram.addEventListener('click', async () => {
       btnTestTelegram.disabled = true;
-      btnTestTelegram.textContent = 'Sending Ping...';
+      btnTestTelegram.textContent = 'Sending...';
       try {
         const res = await fetch('/api/test/telegram', { method: 'POST' });
         const data = await res.json();
@@ -1111,7 +1337,7 @@ function initActions() {
         showToast(`Telegram test failed: ${err.message}`, 'error');
       } finally {
         btnTestTelegram.disabled = false;
-        btnTestTelegram.innerHTML = '<span>📲</span> Send Test Telegram Ping';
+        btnTestTelegram.innerHTML = '<span>📲</span> Send Test Telegram Alert';
       }
     });
   }
@@ -1193,8 +1419,8 @@ function showToast(message, type = 'info') {
 
   setTimeout(() => {
     toast.style.opacity = '0';
-    toast.style.transform = 'translateY(12px)';
-    setTimeout(() => toast.remove(), 300);
+    toast.style.transform = 'translateY(8px)';
+    setTimeout(() => toast.remove(), 250);
   }, 4000);
 }
 
@@ -1220,4 +1446,55 @@ function formatTimeAgo(dateString) {
   const diffHr = Math.floor(diffMin / 60);
   if (diffHr < 24) return `${diffHr}h ago`;
   return `${Math.floor(diffHr / 24)}d ago`;
+}
+
+function parseCsvToObjects(csvText) {
+  const lines = csvText.trim().split(/\r?\n/).filter(l => l.trim().length > 0);
+  if (lines.length < 2) return [];
+
+  const headers = splitCsvLine(lines[0]).map(h => h.trim().toLowerCase());
+  const rows = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const values = splitCsvLine(lines[i]);
+    if (values.length === 0) continue;
+
+    const obj = {};
+    headers.forEach((header, idx) => {
+      const val = (values[idx] || '').trim();
+      if (header.includes('company') || header.includes('business')) obj.companyName = val;
+      else if (header.includes('contact') && (header.includes('name') || !obj.contactName)) obj.contactName = val;
+      else if (header.includes('title') || header.includes('role')) obj.contactTitle = val;
+      else if (header.includes('email') || header.includes('mail')) obj.email = val;
+      else if (header.includes('website') || header.includes('url') || header.includes('domain')) obj.website = val;
+      else if (header.includes('address') || header.includes('street') || header.includes('location')) obj.address = val;
+      else if (header.includes('industry') || header.includes('category') || header.includes('niche')) obj.industry = val;
+      else if (header.includes('phone') || header.includes('tel')) obj.phone = val;
+      else if (header.includes('country')) obj.country = val;
+    });
+
+    if (obj.companyName || obj.email) {
+      rows.push(obj);
+    }
+  }
+  return rows;
+}
+
+function splitCsvLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      result.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current);
+  return result;
 }

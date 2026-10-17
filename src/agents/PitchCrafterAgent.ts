@@ -26,27 +26,35 @@ export class PitchCrafterAgent extends BaseAgent {
 
     let craftedCount = 0;
 
-    // 1. Process 'scouted' leads (ready for Step 1)
+    // 1. Process 'audited' (deep site diagnostics ready) and 'scouted' leads (ready for Step 1)
+    const auditedLeads = this.db.getAllLeads('audited');
     const scoutedLeads = this.db.getAllLeads('scouted');
-    for (const lead of scoutedLeads.slice(0, 5)) {
-      this.setTask(`Crafting personalized Step 1 pitch for ${lead.companyName}...`);
-      const scheduledMsg = await this.craftMessageForLead(lead, 1, defaultSeq);
+    const leadsReadyForStep1 = [...auditedLeads, ...scoutedLeads];
+
+    for (const lead of leadsReadyForStep1.slice(0, 5)) {
+      const campaign = lead.campaignId ? this.db.getCampaign(lead.campaignId) : null;
+      const targetSeq = (campaign?.sequenceId ? this.db.getSequenceById(campaign.sequenceId) : null) || defaultSeq;
+
+      this.setTask(`Crafting personalized flaw-based Step 1 pitch for ${lead.companyName}...`);
+      const scheduledMsg = await this.craftMessageForLead(lead, 1, targetSeq);
       if (scheduledMsg) {
         this.db.insertMessage(scheduledMsg);
         this.db.updateLead(lead.id, {
           status: 'contacted',
           currentSequenceStep: 1,
-          nextFollowUpAt: this.calculateFollowUpTime(defaultSeq, 1)
+          nextFollowUpAt: this.calculateFollowUpTime(targetSeq, 1)
         });
         craftedCount += 1;
         this.log('info', `Crafted Step 1 email for ${lead.companyName} (${lead.contactName})`, {
           leadId: lead.id,
-          subject: scheduledMsg.subject
+          sequence: targetSeq.name,
+          subject: scheduledMsg.subject,
+          hasFlawReport: Boolean(lead.flawReport)
         });
       }
     }
 
-    // 2. Process 'contacted' leads due for follow-ups (Step 2, 3, or 4)
+    // 2. Process 'contacted' leads due for follow-ups (Steps 2 through 6)
     const contactedLeads = this.db.getAllLeads('contacted');
     const now = new Date();
 
@@ -55,21 +63,24 @@ export class PitchCrafterAgent extends BaseAgent {
       const nextDue = new Date(lead.nextFollowUpAt);
 
       if (nextDue <= now) {
+        const campaign = lead.campaignId ? this.db.getCampaign(lead.campaignId) : null;
+        const targetSeq = (campaign?.sequenceId ? this.db.getSequenceById(campaign.sequenceId) : null) || defaultSeq;
         const nextStepNum = lead.currentSequenceStep + 1;
-        const targetStep = defaultSeq.steps.find(s => s.stepNumber === nextStepNum);
+        const targetStep = targetSeq.steps.find(s => s.stepNumber === nextStepNum);
 
         if (targetStep) {
           this.setTask(`Crafting Step ${nextStepNum} follow-up for ${lead.companyName}...`);
-          const scheduledMsg = await this.craftMessageForLead(lead, nextStepNum, defaultSeq);
+          const scheduledMsg = await this.craftMessageForLead(lead, nextStepNum, targetSeq);
           if (scheduledMsg) {
             this.db.insertMessage(scheduledMsg);
             this.db.updateLead(lead.id, {
               currentSequenceStep: nextStepNum,
-              nextFollowUpAt: this.calculateFollowUpTime(defaultSeq, nextStepNum)
+              nextFollowUpAt: this.calculateFollowUpTime(targetSeq, nextStepNum)
             });
             craftedCount += 1;
             this.log('info', `Crafted Step ${nextStepNum} follow-up for ${lead.companyName}`, {
               leadId: lead.id,
+              sequence: targetSeq.name,
               subject: scheduledMsg.subject
             });
           }
@@ -78,6 +89,7 @@ export class PitchCrafterAgent extends BaseAgent {
           this.db.updateLead(lead.id, {
             nextFollowUpAt: undefined
           });
+          this.log('info', `Completed full ${targetSeq.name} (${targetSeq.steps.length} steps) for ${lead.companyName}`);
         }
       }
     }
@@ -108,12 +120,17 @@ export class PitchCrafterAgent extends BaseAgent {
       .replace(/{{contactName}}/g, lead.contactName)
       .replace(/{{industry}}/g, lead.industry);
 
+    // Format flaw report details if present
+    const flawSummary = lead.flawReport
+      ? `Site Flaws: ${lead.flawReport.criticalFlaws.slice(0, 2).join('; ')} (Performance: ${lead.flawReport.performanceScore}/100, Latency: ${lead.flawReport.loadLatencyMs}ms)`
+      : (lead.painPoints || 'streamlining software workflows');
+
     let body = step.bodyTemplate
       .replace(/{{companyName}}/g, lead.companyName)
       .replace(/{{contactName}}/g, lead.contactName)
       .replace(/{{industry}}/g, lead.industry)
       .replace(/{{calendarBookingUrl}}/g, settings.jesoraProfile.calendarBookingUrl)
-      .replace(/{{painPoints}}/g, lead.painPoints || 'streamlining software workflows')
+      .replace(/{{painPoints}}/g, flawSummary)
       .replace(/{{techStack}}/g, lead.techStack || 'web platform');
 
     // In step 1 or 2, dynamically highlight the matched case study if not already present
@@ -124,7 +141,7 @@ export class PitchCrafterAgent extends BaseAgent {
     // Add optional AI enhancement if an AI key is supplied
     if (settings.ai.provider !== 'builtin' && settings.ai.apiKey) {
       try {
-        const enhanced = await this.enhancePitchWithAI(subject, body, lead, settings);
+        const enhanced = await this.enhancePitchWithAI(subject, body, lead, stepNumber, sequence, settings);
         if (enhanced) {
           subject = enhanced.subject;
           body = enhanced.body;
@@ -213,9 +230,169 @@ export class PitchCrafterAgent extends BaseAgent {
     subject: string,
     body: string,
     lead: Lead,
+    stepNumber: number,
+    sequence: EmailSequence,
     settings: any
   ): Promise<{ subject: string; body: string } | null> {
-    // If external AI endpoint is configured, make call here; otherwise return structured template
+    if (!settings.ai?.apiKey) return null;
+
+    try {
+      const model = settings.ai.modelName || 'gemini-3.8-flash';
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${settings.ai.apiKey}`;
+      const relevantCaseStudy = this.matchBestCaseStudy(lead);
+
+      const flawSection = lead.flawReport
+        ? `CONCRETE TECHNICAL WEBSITE AUDIT FINDINGS:
+• Performance Score: ${lead.flawReport.performanceScore}/100
+• Load Latency / TTFB: ${lead.flawReport.loadLatencyMs}ms
+• Detected Critical Flaws: ${lead.flawReport.criticalFlaws.join(' | ')}
+• Conversion Bottlenecks: ${lead.flawReport.conversionBottlenecks.join(' | ')}
+• Recommended Engineering Fixes: ${lead.flawReport.recommendedFixes.join(' | ')}`
+        : `• Observed Bottlenecks: ${lead.painPoints || 'sub-optimal mobile responsiveness, latency, and conversion drop-off'}`;
+
+      const isEnterprise = sequence.id === 'seq-enterprise-automation';
+
+      let stepStrategy = '';
+      if (isEnterprise) {
+        if (stepNumber === 1) {
+          stepStrategy = `STEP 1 ANGLE: OPERATIONAL OVERHEAD IDENTIFICATION & PROPRIETARY ERP/CRM
+- Hook: Acknowledge that in ${lead.industry}, manual spreadsheets and rigid off-the-shelf tools slow down operations.
+- Introduce: Custom lightweight Cloud ERP, automated customer dispatch, and real-time database designed 100% for ${lead.companyName}.
+- Highlights: 100% full source code ownership, zero recurring per-seat monthly license fees.
+- Social Proof: Mention MotoFix (motohubfix.vercel.app) for real-time queue & scheduling automation.
+- Call To Action: Low-friction ask for a 10-minute discovery call to explore eliminating 10+ hours/week of manual admin overhead.`;
+        } else if (stepNumber === 2) {
+          stepStrategy = `STEP 2 ANGLE: CASE STUDY TEARDOWN & CONCRETE TIME-SAVINGS
+- Hook: Re-engage with operational metrics from real engineering deployments.
+- Teardown: Explain how MotoFix replaced whiteboard queues with real-time bay tracking, instant booking, and automated invoice triggers.
+- Delivery Model: Production tools built in focused 2 to 4-week sprints with 100% code handover.
+- Call To Action: Propose a quick 10-minute chat this Thursday/Friday or share calendar booking link (${settings.jesoraProfile?.calendarBookingUrl || 'https://calendly.com/techjesora/30min'}).`;
+        } else if (stepNumber === 3) {
+          stepStrategy = `STEP 3 ANGLE: THE HIDDEN SAAS SUBSCRIPTION TAX VS OWNED ASSET
+- Hook: Contrast paying $300-$1,500/month forever in SaaS subscription fees vs owning proprietary software.
+- The Solution: Custom Next.js & PostgreSQL internal tool hosted on their own cloud — zero per-user seat fees forever, 100% data privacy.
+- Call To Action: Offer to prepare a high-level feasibility outline showing what a custom portal for ${lead.companyName} would look like.`;
+        } else if (stepNumber === 4) {
+          stepStrategy = `STEP 4 ANGLE: FREE DATABASE SCHEMA & WORKFLOW BLUEPRINT (ZERO OBLIGATION)
+- Offer: Complimentary Database Schema (ERD) & API Integration Blueprint specifically drafted for ${lead.companyName}.
+- Value: Completely free to keep with zero strings attached, even if built internally.
+- Call To Action: Direct calendar link to claim the blueprint in a 15-minute scoping chat.`;
+        } else {
+          stepStrategy = `STEP 5 ANGLE: PROFESSIONAL FILE ARCHIVE & FOUNDER ROLODEX
+- Tone: High-status, respectful, zero desperation.
+- Message: Closing the file on workflow automation for now so we don't clutter their inbox.
+- Leave: Direct email (techjesora@gmail.com | jesoratech.com) for whenever custom software or an urgent sprint becomes a priority.`;
+        }
+      } else {
+        // Modern Web & Engineering Sequence (seq-jesora-fullstack)
+        if (stepNumber === 1) {
+          stepStrategy = `STEP 1 ANGLE: BESPOKE CONCEPT REDESIGN HOOK & SITE FLAW DIAGNOSTIC BREAKDOWN
+- Hook: Our engineering team already audited their live web presence at ${lead.website || lead.companyName} and built a rapid concept redesign prototype specifically for ${lead.companyName}.
+- Problem vs. Solution: Contrast the concrete audit findings:
+${flawSection}
+  against our custom Next.js/React architecture with sub-second page loads and mobile-first UI.
+- Jesora Tech Pillars: 100% full source code ownership from Day 1, agile 2-week delivery sprints, 40-60% cost advantage.
+- Social Proof: ${relevantCaseStudy.title} (${relevantCaseStudy.url}): "${relevantCaseStudy.highlight}".
+- Call To Action: Low-resistance question: "Would you be against taking a 2-minute peek at the concept prototype we sketched out for you?"`;
+        } else if (stepNumber === 2) {
+          stepStrategy = `STEP 2 ANGLE: UNDER-THE-HOOD ENGINEERING PROOF & PRODUCTION DEMOS
+- Hook: Quick follow-up on the concept prototype sketched for ${lead.companyName}.
+- Teardown: Highlight execution standards from WriteWell (writewell.space, zero latency AI SaaS) and MotoFix (motohubfix.vercel.app, live booking queue).
+- Positioning: Turnkey production software with zero vendor lock-in.
+- Call To Action: 10-minute chat or direct calendar link (${settings.jesoraProfile?.calendarBookingUrl || 'https://calendly.com/techjesora/30min'}).`;
+        } else if (stepNumber === 3) {
+          stepStrategy = `STEP 3 ANGLE: 3-POINT CONVERSION BOTTLENECK TEARDOWN & MOBILE FRICTION
+- Hook: Ran deeper technical benchmarks on their live website during prototype tuning.
+- 3 Friction Points:
+  1. Latency & Core Web Vitals (slow TTFB and layout shift causing 30-40% visitor bounce).
+  2. Mobile inquiry pathway (too many manual form steps instead of instant friction-free booking).
+  3. Legacy stack drag (monolith vs. decoupled Next.js & Tailwind).
+- Call To Action: Offer to record a personalized 2-minute Loom video walking through the interactive differences.`;
+        } else if (stepNumber === 4) {
+          stepStrategy = `STEP 4 ANGLE: FREE TECHNICAL ARCHITECTURE & DATABASE BLUEPRINT (ZERO OBLIGATIONS)
+- Value Proposition: Completely complimentary Technical Architecture & Feasibility Blueprint for ${lead.companyName}.
+- Contents: Recommended modern stack (Next.js, Node.js/Python, PostgreSQL), database ERD schema, API roadmap, 2-week sprint breakdown.
+- Freedom: Free to keep forever even if they build internally or hire elsewhere.
+- Call To Action: 15-minute calendar link to request the blueprint.`;
+        } else if (stepNumber === 5) {
+          stepStrategy = `STEP 5 ANGLE: STAGING PREVIEW & TRANSPARENT 2-WEEK SPRINT ECONOMICS
+- Hook: Showing how Jesora Tech eliminates common software delivery headaches.
+- Mechanics: Focused 2-week agile sprints, fixed transparent pricing (40-60% below US/Western European agencies), weekly Friday production deployments, daily async Loom updates, direct senior developer access with zero junior handoffs.
+- Call To Action: Calendar link for an introductory review of the concept preview or roadmap.`;
+        } else {
+          stepStrategy = `STEP 6 ANGLE: PROFESSIONAL GRACEFUL BREAK-UP & FOUNDER ROLODEX ARCHIVE
+- Tone: High-status, gracious, respectful of their priorities.
+- Message: Safely archiving the concept preview to keep their inbox clean.
+- Rolodex: Leaving direct email and contact for future urgent dev sprints (techjesora@gmail.com | jesoratech.com).`;
+        }
+      }
+
+      const prompt = `You are an elite B2B engineering growth copywriter for JESORA TECH (jesoratech.com), a premier custom software and web development partner founded by Rajan Thakulla, based in Tinkune, Kathmandu, Nepal.
+
+YOUR GOAL:
+Draft a personalized, high-converting B2B cold outreach email that grabs the prospect's attention immediately and feels completely bespoke (NEVER generic, robotic, or templated).
+
+TARGET PROSPECT:
+• Company: ${lead.companyName} (${lead.industry})
+• Contact: ${lead.contactName} (${lead.contactTitle || 'Founder / Decision Maker'})
+• Website: ${lead.website}
+• Physical Address: ${lead.address || 'Headquarters'}
+• Tech Stack: ${lead.techStack || 'Web infrastructure'}
+
+SEQUENCE CONTEXT:
+• Sequence Name: ${sequence.name}
+• Sequence Step: Step ${stepNumber} of ${sequence.steps.length}
+• Sequence Goal: ${sequence.steps.find(s => s.stepNumber === stepNumber)?.purpose || 'Consultative outreach'}
+
+${stepStrategy}
+
+CRITICAL COPYWRITING DIRECTIVES:
+1. Speak peer-to-peer as a senior software engineer and technical founder, not a pushy marketer or generic agency.
+2. Format in short, punchy, scannable paragraphs (2-3 sentences max) optimized for mobile screens.
+3. No generic agency fluff like "hope this email finds you well" or "we are a leading IT firm".
+4. Base subject line draft: "${subject}". Feel free to sharpen it into an irresistible, personalized subject line.
+5. Base body context:
+${body}
+
+Return JSON with exact keys:
+{
+  "subject": "Compelling, bespoke subject line",
+  "body": "Complete, polished, persuasive email body signed by Rajan Thakulla & The JESORA TECH Team"
+}`;
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 25000);
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { responseMimeType: 'application/json' }
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        this.log('warn', `Gemini API returned status ${res.status}: ${errText.slice(0, 100)}`);
+        return null;
+      }
+
+      const data = await res.json() as any;
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) return null;
+
+      const cleaned = text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+      const parsed = JSON.parse(cleaned);
+      if (parsed.subject && parsed.body) {
+        this.log('success', `✨ Gemini AI crafted bespoke Step ${stepNumber} copy for ${lead.companyName}`);
+        return { subject: parsed.subject, body: parsed.body };
+      }
+    } catch (err: any) {
+      this.log('warn', `AI pitch enhancement fallback to template: ${err.message}`);
+    }
     return null;
   }
 }

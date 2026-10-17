@@ -31,6 +31,7 @@ export class AppDatabase {
     this.db.pragma('foreign_keys = ON');
     this.initTables();
     this.seedDefaultsIfEmpty();
+    this.syncDefaultSequences();
   }
 
   private initTables(): void {
@@ -58,6 +59,9 @@ export class AppDatabase {
         notes TEXT,
         campaign_id TEXT,
         current_sequence_step INTEGER NOT NULL DEFAULT 0,
+        address TEXT,
+        website_verified INTEGER NOT NULL DEFAULT 0,
+        flaw_report_json TEXT,
         last_contacted_at TEXT,
         next_follow_up_at TEXT,
         created_at TEXT NOT NULL,
@@ -170,6 +174,10 @@ export class AppDatabase {
       CREATE INDEX IF NOT EXISTS idx_agent_logs_agent ON agent_logs(agent_id);
       CREATE INDEX IF NOT EXISTS idx_agent_logs_timestamp ON agent_logs(timestamp);
     `);
+
+    try { this.db.exec('ALTER TABLE leads ADD COLUMN address TEXT;'); } catch {}
+    try { this.db.exec('ALTER TABLE leads ADD COLUMN website_verified INTEGER DEFAULT 0;'); } catch {}
+    try { this.db.exec('ALTER TABLE leads ADD COLUMN flaw_report_json TEXT;'); } catch {}
   }
 
   // --- Settings ---
@@ -200,40 +208,46 @@ export class AppDatabase {
   }
 
   public getDefaultSettings(): SystemSettings {
+    const smtpPass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
+    const imapPass = (process.env.IMAP_PASS || smtpPass).replace(/\s+/g, '');
+    const tgToken = process.env.TELEGRAM_BOT_TOKEN || '';
+    const tgChatId = process.env.TELEGRAM_CHAT_ID || '';
+    const geminiKey = process.env.GEMINI_API_KEY || process.env.AI_API_KEY || '';
+
     return {
       smtp: {
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
         port: Number(process.env.SMTP_PORT) || 587,
-        secure: false,
+        secure: process.env.SMTP_SECURE === 'true',
         user: process.env.SMTP_USER || 'techjesora@gmail.com',
-        pass: process.env.SMTP_PASS || '',
-        fromName: 'JESORA TECH Team',
-        fromEmail: 'techjesora@gmail.com',
-        dryRun: true // Default safe simulation mode so user can test immediately without accidental spam
+        pass: smtpPass,
+        fromName: process.env.SMTP_FROM_NAME || 'JESORA TECH Team',
+        fromEmail: process.env.SMTP_USER || 'techjesora@gmail.com',
+        dryRun: process.env.SMTP_DRY_RUN === 'false' ? false : true
       },
       imap: {
         host: process.env.IMAP_HOST || 'imap.gmail.com',
-        port: 993,
-        user: process.env.IMAP_USER || 'techjesora@gmail.com',
-        pass: process.env.IMAP_PASS || '',
-        enabled: false
+        port: Number(process.env.IMAP_PORT) || 993,
+        user: process.env.IMAP_USER || process.env.SMTP_USER || 'techjesora@gmail.com',
+        pass: imapPass,
+        enabled: Boolean(imapPass)
       },
       ai: {
-        provider: 'builtin',
-        apiKey: process.env.AI_API_KEY || process.env.GEMINI_API_KEY || '',
-        modelName: 'gemini-1.5-flash'
+        provider: (process.env.AI_PROVIDER as any) || (geminiKey ? 'gemini' : 'builtin'),
+        apiKey: geminiKey,
+        modelName: process.env.AI_MODEL || 'gemini-3.8-flash'
       },
       telegram: {
-        botToken: process.env.TELEGRAM_BOT_TOKEN || '',
-        chatId: process.env.TELEGRAM_CHAT_ID || '',
-        enabled: false,
+        botToken: tgToken,
+        chatId: tgChatId,
+        enabled: Boolean(tgToken && tgChatId),
         notifyOnHotLead: true,
         notifyOnMeeting: true,
         notifyOnSend: false
       },
       pacing: {
-        maxEmailsPerDay: 40,
-        minDelayMinutesBetweenSends: 8,
+        maxEmailsPerDay: Number(process.env.MAX_EMAILS_PER_DAY) || 40,
+        minDelayMinutesBetweenSends: Number(process.env.MIN_DELAY_MINUTES) || 8,
         businessHoursOnly: true,
         businessHoursStart: 9,
         businessHoursEnd: 18,
@@ -252,7 +266,7 @@ export class AppDatabase {
         headquarters: 'Tinkune, Kathmandu 44600, Nepal',
         contactEmail: 'techjesora@gmail.com',
         contactPhone: '+977 9740291406',
-        calendarBookingUrl: 'https://calendly.com/jesoratech/intro-call',
+        calendarBookingUrl: process.env.CALENDLY_URL || 'https://calendly.com/techjesora/30min',
         keySellingPoints: [
           '100% full source code ownership handed over (zero vendor lock-in)',
           '40-60% development cost advantage with uncompromising Silicon Valley quality standards',
@@ -321,6 +335,9 @@ export class AppDatabase {
       painPoints: r.pain_points || undefined,
       score: r.score,
       status: r.status,
+      address: r.address || undefined,
+      websiteVerified: Boolean(r.website_verified),
+      flawReport: r.flaw_report_json ? JSON.parse(r.flaw_report_json) : undefined,
       notes: r.notes || undefined,
       campaignId: r.campaign_id || undefined,
       currentSequenceStep: r.current_sequence_step,
@@ -343,11 +360,14 @@ export class AppDatabase {
       contactTitle: r.contact_title || undefined,
       email: r.email,
       phone: r.phone || undefined,
+      address: r.address || undefined,
       country: r.country,
       techStack: r.tech_stack || undefined,
       painPoints: r.pain_points || undefined,
       score: r.score,
       status: r.status,
+      websiteVerified: Boolean(r.website_verified),
+      flawReport: r.flaw_report_json ? JSON.parse(r.flaw_report_json) : undefined,
       notes: r.notes || undefined,
       campaignId: r.campaign_id || undefined,
       currentSequenceStep: r.current_sequence_step,
@@ -368,10 +388,11 @@ export class AppDatabase {
     const stmt = this.db.prepare(`
       INSERT INTO leads (
         id, company_name, website, industry, contact_name, contact_title,
-        email, phone, country, tech_stack, pain_points, score, status,
-        notes, campaign_id, current_sequence_step, last_contacted_at,
-        next_follow_up_at, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        email, phone, address, country, tech_stack, pain_points, score, status,
+        website_verified, flaw_report_json, notes, campaign_id,
+        current_sequence_step, last_contacted_at, next_follow_up_at,
+        created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
@@ -383,11 +404,14 @@ export class AppDatabase {
       lead.contactTitle || null,
       lead.email,
       lead.phone || null,
+      lead.address || null,
       lead.country,
       lead.techStack || null,
       lead.painPoints || null,
       lead.score,
       lead.status,
+      lead.websiteVerified ? 1 : 0,
+      lead.flawReport ? JSON.stringify(lead.flawReport) : null,
       lead.notes || null,
       lead.campaignId || null,
       lead.currentSequenceStep,
@@ -406,8 +430,9 @@ export class AppDatabase {
     const stmt = this.db.prepare(`
       UPDATE leads SET
         company_name = ?, website = ?, industry = ?, contact_name = ?,
-        contact_title = ?, email = ?, phone = ?, country = ?, tech_stack = ?,
-        pain_points = ?, score = ?, status = ?, notes = ?, campaign_id = ?,
+        contact_title = ?, email = ?, phone = ?, address = ?, country = ?,
+        tech_stack = ?, pain_points = ?, score = ?, status = ?,
+        website_verified = ?, flaw_report_json = ?, notes = ?, campaign_id = ?,
         current_sequence_step = ?, last_contacted_at = ?, next_follow_up_at = ?,
         updated_at = ?
       WHERE id = ?
@@ -421,11 +446,14 @@ export class AppDatabase {
       merged.contactTitle || null,
       merged.email,
       merged.phone || null,
+      merged.address || null,
       merged.country,
       merged.techStack || null,
       merged.painPoints || null,
       merged.score,
       merged.status,
+      merged.websiteVerified ? 1 : 0,
+      merged.flawReport ? JSON.stringify(merged.flawReport) : null,
       merged.notes || null,
       merged.campaignId || null,
       merged.currentSequenceStep,
@@ -482,6 +510,10 @@ export class AppDatabase {
       createdAt: r.created_at,
       updatedAt: r.updated_at
     };
+  }
+
+  public getCampaign(id: string): Campaign | null {
+    return this.getCampaignById(id);
   }
 
   public insertCampaign(campaign: Campaign): void {
@@ -571,10 +603,20 @@ export class AppDatabase {
     };
   }
 
+  public getSequence(id: string): EmailSequence | null {
+    return this.getSequenceById(id);
+  }
+
   public insertSequence(seq: EmailSequence): void {
     const stmt = this.db.prepare(`
       INSERT INTO sequences (id, name, description, target_audience, steps_json, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        name = excluded.name,
+        description = excluded.description,
+        target_audience = excluded.target_audience,
+        steps_json = excluded.steps_json,
+        updated_at = excluded.updated_at
     `);
     stmt.run(
       seq.id,
@@ -884,98 +926,271 @@ export class AppDatabase {
     };
   }
 
-  // --- Defaults Seed ---
-  private seedDefaultsIfEmpty(): void {
-    const campaignCount = (this.db.prepare('SELECT COUNT(*) as c FROM campaigns').get() as any).c;
-    if (campaignCount > 0) return;
-
-    // Seed default Sequence
+  // --- Sequences & Defaults ---
+  public syncDefaultSequences(): void {
     const defaultSeq: EmailSequence = {
       id: 'seq-jesora-fullstack',
-      name: 'Jesora Tech High-Value Engineering Outreach',
-      description: '4-touch consultative sequence highlighting 100% source code ownership and proven SaaS/ERP case studies',
-      targetAudience: 'Startups, Agencies, Mid-market businesses looking for tech dev partners',
+      name: 'Jesora Tech 6-Touch High-Value Engineering & Web Modernization Sequence',
+      description: '6-touch consultative sequence featuring bespoke concept redesign previews, site flaw diagnostic breakdowns, live production case studies, free architectural blueprints, and 100% full source code ownership.',
+      targetAudience: 'Founders, CTOs, and Managing Directors seeking agile full-stack engineers with 100% code handover and 40-60% cost advantage',
       steps: [
         {
           stepNumber: 1,
           delayDays: 0,
-          purpose: 'Initial consultative angle & tech stack audit',
-          subjectTemplate: 'Quick question regarding {{companyName}}\'s software roadmap',
+          purpose: 'Concept redesign hook & site flaw diagnostic breakdown',
+          subjectTemplate: 'Built a concept redesign for {{companyName}} / Quick question',
           bodyTemplate: `Hi {{contactName}},
 
-I noticed your work at {{companyName}} in the {{industry}} space. 
+I didn't want to reach out empty-handed, so our engineering team at JESORA TECH (jesoratech.com) actually put together a rapid concept redesign & performance audit for {{companyName}} after analyzing your current web experience.
 
-At JESORA TECH (jesoratech.com), we partner with ambitious companies to build high-performance custom web applications, mobile apps, and scalable cloud systems. 
+Here is the quick diagnostic breakdown of what our audit flagged vs. what we architected:
 
-Unlike typical agencies that lock you in, we provide:
-• 100% full source code ownership handed directly to you
-• Agile 2-week sprints with demonstrable milestone demos
-• Production-grade engineering with Next.js, React, Node.js, and Python at a 40-60% cost efficiency
+• OBSERVED BOTTLENECK:
+{{painPoints}}
 
-Recently, we engineered WriteWell (an AI SaaS platform with real-time text processing) and MotoFix (a live workshop service & booking system).
+• THE SOLUTION WE ARCHITECTED:
+A modern Next.js/React architecture with sub-second page loads, responsive mobile-first UI, and clean API workflows designed to stop visitor bounce rates and maximize conversions.
 
-Would you be open to a 10-minute introductory call this week to see if we might be a strong engineering fit for {{companyName}}?
+Unlike traditional agencies that keep your software hostage, we operate with a developer-first ethos:
+1. 100% Full Source Code Ownership handed directly to you from Day 1.
+2. Agile 2-week delivery sprints with demonstrable live staging demos.
+3. 40–60% development cost advantage with Silicon Valley engineering standards.
+
+Would you be against taking a 2-minute peek at the concept prototype we sketched out for you?
 
 Best regards,
-Rajan Thakulla & The JESORA TECH Team
-Kathmandu, Nepal | techjesora@gmail.com | jesoratech.com`
+Rajan Thakulla
+Founder & Lead Engineer | JESORA TECH
+Tinkune, Kathmandu | techjesora@gmail.com | jesoratech.com`
         },
         {
           stepNumber: 2,
           delayDays: 3,
-          purpose: 'Case study proof & technical capability showcase',
-          subjectTemplate: 'Re: Quick question regarding {{companyName}}\'s software roadmap',
+          purpose: 'Case study proof & interactive prototype walkthrough',
+          subjectTemplate: 'Re: Built a concept redesign for {{companyName}} (Production teardown)',
           bodyTemplate: `Hi {{contactName}},
 
-Following up briefly on my previous note. 
+Following up quickly on my note about the concept prototype we sketched for {{companyName}}.
 
-I wanted to share a relevant case study: we recently engineered WriteWell (writewell.space), an AI writing refinement SaaS with zero latency and high retention, along with custom cloud ERP platforms for growing enterprises.
+To give you an idea of our execution standard: we recently engineered WriteWell (writewell.space) — an AI SaaS platform with real-time text processing and zero latency — as well as MotoFix (motohubfix.vercel.app), a live workshop booking & enterprise queue system.
 
-Whether you are looking to build a new MVP, modernize an existing legacy platform, or scale your backend architecture, our team handles end-to-end design, code, and 24/7 SLA maintenance.
+Whether you're looking to turn that concept into reality, build a custom web portal, or automate internal operations, we deliver turnkey production code with zero agency lock-in.
 
-Do you have 10 minutes on Thursday or Friday for a quick chat?
+Would love to share the private preview with you. Are you open to a brief 10-minute chat this Thursday?
 
-You can also book directly at our calendar if convenient:
+Alternatively, feel free to pick any slot that fits your schedule:
 {{calendarBookingUrl}}
 
 Warm regards,
-JESORA TECH Solutions Team`
+Rajan Thakulla | JESORA TECH Team`
         },
         {
           stepNumber: 3,
-          delayDays: 4,
-          purpose: 'Value offering: Free discovery & technical architecture scope',
-          subjectTemplate: 'Free technical architecture & feasibility audit for {{companyName}}',
+          delayDays: 3,
+          purpose: 'Technical site flaw audit teardown & mobile conversion friction',
+          subjectTemplate: '3 performance bottlenecks losing {{companyName}} leads (+ Next.js fix)',
           bodyTemplate: `Hi {{contactName}},
 
-I know you have a busy schedule leading {{companyName}}. 
+While fine-tuning the concept prototype for {{companyName}}, our team ran a deeper technical benchmark on your live site. Three specific friction points jumped out:
 
-To make this completely risk-free for you, we would love to offer a free 30-minute discovery & architectural review of your upcoming web/software roadmap. 
+1. Latency & Core Web Vitals: Mobile visitors are experiencing rendering delays and layout shift before core call-to-actions load, which silently drives bounce rates up by 30-40%.
+2. Interactive Conversion Funnel: The current inquiry/contact pathway requires too many manual steps instead of an instantaneous, friction-free booking flow.
+3. Modern Stack Upgrade: Transitioning from legacy CMS/monolithic code to a decoupled Next.js & Tailwind setup would immediately slash hosting overhead and deliver instant sub-second page transitions.
 
-Our senior architects will review your requirements, suggest an optimal tech stack, and deliver a transparent milestone estimation — zero obligations.
+We already addressed all three in the prototype build.
 
-Let me know if this sounds helpful, or feel free to pick a time here:
-{{calendarBookingUrl}}
+Would it be helpful if I recorded a brief 2-minute Loom video walking through the interactive differences?
 
 Best,
-JESORA TECH Engineering Team`
+Rajan Thakulla
+JESORA TECH | jesoratech.com`
         },
         {
           stepNumber: 4,
-          delayDays: 5,
-          purpose: 'Graceful break-up & long-term connection',
-          subjectTemplate: 'Permission to close {{companyName}}\'s file for now?',
+          delayDays: 3,
+          purpose: 'Value offering: Free technical architecture & feasibility blueprint',
+          subjectTemplate: 'Free architecture blueprint for {{companyName}} (Zero obligations)',
           bodyTemplate: `Hi {{contactName}},
 
-I haven't heard back, so I assume custom software or web engineering is not a top priority for {{companyName}} right now.
+I know how demanding your schedule is leading {{companyName}}. 
 
-I won't clutter your inbox further. If your engineering needs ever expand or you need a reliable dev team for a sprint, feel free to keep our site handy: https://jesoratech.com
+To remove all friction, we’d love to gift you our complete Technical Architecture & Feasibility Blueprint for {{companyName}} — completely on the house.
 
-Wishing you and {{companyName}} continued success!
+Our senior software architects will map out:
+• Recommended modern stack (Next.js, Node.js, Python, PostgreSQL)
+• Database schema & API integration roadmap
+• Realistic 2-week milestone sprint breakdown & cost estimation
+
+Even if you choose to build it internally or with someone else, the blueprint and architecture diagrams are yours to keep.
+
+If this sounds helpful, grab 15 minutes here:
+{{calendarBookingUrl}}
+
+Best,
+Rajan Thakulla | JESORA TECH`
+        },
+        {
+          stepNumber: 5,
+          delayDays: 4,
+          purpose: 'Staging preview & transparent sprint pricing breakdown',
+          subjectTemplate: 'Quick staging preview & sprint breakdown for {{companyName}}',
+          bodyTemplate: `Hi {{contactName}},
+
+I wanted to share how we work with companies like {{companyName}} to eliminate the usual software delivery headaches.
+
+Instead of vague 6-month contracts with bloated agency retainers, we work in focused 2-week sprints:
+• Fixed, transparent sprint rates (typically 40-60% below US/Western European agency quotes)
+• Production deployment to your own private AWS/Vercel cloud every Friday
+• Daily async Loom updates & GitHub PR access from day one
+• Zero junior hand-offs — all work is driven by experienced full-stack engineers
+
+If you'd like to review the concept preview we set up for {{companyName}} or discuss any technical roadmap priorities, feel free to book a quick introductory call:
+{{calendarBookingUrl}}
+
+Warm regards,
+Rajan Thakulla
+Founder & Lead Engineer | JESORA TECH`
+        },
+        {
+          stepNumber: 6,
+          delayDays: 4,
+          purpose: 'Graceful break-up & long-term founder connection',
+          subjectTemplate: 'Permission to archive {{companyName}}\'s concept prototype?',
+          bodyTemplate: `Hi {{contactName}},
+
+I haven't heard back, so I assume modernizing the web platform or custom software is not on {{companyName}}'s priority list right now.
+
+I will safely archive the concept preview so I don't clutter your inbox further. If your engineering needs ever expand or you need an agile dev team for an urgent sprint, feel free to reach out anytime: techjesora@gmail.com | jesoratech.com
+
+Wishing you and {{companyName}} immense growth!
+
+Warm regards,
+Rajan Thakulla
+JESORA TECH`
+        }
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const enterpriseSeq: EmailSequence = {
+      id: 'seq-enterprise-automation',
+      name: 'Jesora Tech Enterprise ERP, CRM & Workflow Automation Sequence',
+      description: '5-touch high-converting sequence for mid-market retail, healthcare, clinics, logistics, and education businesses needing bespoke workflow automation, internal tools, and high-performance ERP portals.',
+      targetAudience: 'Operations Heads, Managing Directors, and Retail/Healthcare executives seeking custom internal software, automated operations, and zero recurring SaaS license fees',
+      steps: [
+        {
+          stepNumber: 1,
+          delayDays: 0,
+          purpose: 'Operational overhead identification & custom ERP solution',
+          subjectTemplate: 'Automating {{companyName}}\'s internal workflows & database operations',
+          bodyTemplate: `Hi {{contactName}},
+
+Most growing organizations in {{industry}} reach a threshold where off-the-shelf software and manual spreadsheets become a bottleneck: fragmented records, slow customer response times, and recurring SaaS subscription fees.
+
+At JESORA TECH (jesoratech.com), we architect bespoke, lightweight Cloud ERPs, booking portals, and internal workflow tools tailored 100% to your exact business rules:
+
+• Centralized operations dashboard for {{companyName}}
+• Real-time database synchronizing customer inquiries, appointments, and inventory
+• Automated WhatsApp & Email notifications triggered on key operational events
+• 100% Source Code Ownership with zero recurring per-user SaaS license fees
+
+We've recently engineered custom platforms like MotoFix (motohubfix.vercel.app) to automate live service queues and customer scheduling end-to-end.
+
+Would you be open to a 10-minute discovery call to see where {{companyName}} could eliminate 10+ hours of manual administrative overhead each week?
 
 Best regards,
 Rajan Thakulla
-JESORA TECH | Tinkune, Kathmandu`
+Lead Engineer | JESORA TECH
+techjesora@gmail.com | jesoratech.com`
+        },
+        {
+          stepNumber: 2,
+          delayDays: 3,
+          purpose: 'Case study teardown & operational time-savings',
+          subjectTemplate: 'How automated queue systems eliminated 15+ hours/wk of manual admin',
+          bodyTemplate: `Hi {{contactName}},
+
+Following up on my message regarding workflow automation for {{companyName}}.
+
+To see how this works in practice: we engineered MotoFix (motohubfix.vercel.app), a live workshop booking and queue management system. Before the platform, customer check-ins and job statuses were tracked manually on whiteboards and phone calls.
+
+The automated system introduced:
+• Instant customer self-booking and real-time bay queue tracking
+• Automated service milestones and digital invoice generation
+• Complete cloud-backed database accessible across desktop and mobile
+
+We build and deploy these enterprise tools in 2 to 4-week agile sprints, transferring 100% full source code ownership directly to your company.
+
+Would this Thursday or Friday work for a brief 10-minute introductory call?
+{{calendarBookingUrl}}
+
+Warm regards,
+Rajan Thakulla | JESORA TECH`
+        },
+        {
+          stepNumber: 3,
+          delayDays: 3,
+          purpose: 'SaaS subscription cost comparison vs owned bespoke asset',
+          subjectTemplate: 'The hidden cost of SaaS subscription tax on {{companyName}}',
+          bodyTemplate: `Hi {{contactName}},
+
+A quick financial observation we frequently discuss with operations leaders in {{industry}}:
+
+Off-the-shelf enterprise software often costs $300 to $1,500+ every single month in "per-seat" licensing, yet you're forced to adapt your business around their rigid limitations — and the moment you cancel, you lose everything.
+
+With JESORA TECH, you invest once in a custom Next.js/PostgreSQL web application designed precisely for {{companyName}}:
+1. Zero per-user monthly seat licenses.
+2. Complete data privacy and sovereignty hosted on your own cloud.
+3. Custom workflows and integrations that fit your exact business process.
+
+Would you like us to put together a high-level feasibility outline showing what a custom portal for {{companyName}} would look like?
+
+Best,
+Rajan Thakulla
+JESORA TECH | jesoratech.com`
+        },
+        {
+          stepNumber: 4,
+          delayDays: 3,
+          purpose: 'Complimentary system design & ERD architecture map',
+          subjectTemplate: 'Complimentary database schema & workflow blueprint for {{companyName}}',
+          bodyTemplate: `Hi {{contactName}},
+
+To help you evaluate whether modernizing {{companyName}}'s operational software is feasible this quarter, our architecture team would be happy to draft a complimentary Database & Workflow Architecture Blueprint for you.
+
+This includes:
+• Entity Relationship Diagram (ERD) mapping your core data entities
+• API integration plan for WhatsApp, Email, Payment, or Accounting gateways
+• Phased 2-week sprint implementation roadmap with transparent fixed milestones
+
+No commitment or cost — the blueprint is yours to keep and review with your team.
+
+If you'd like us to prepare this, feel free to book 15 minutes with our lead engineers here:
+{{calendarBookingUrl}}
+
+Best regards,
+Rajan Thakulla
+JESORA TECH`
+        },
+        {
+          stepNumber: 5,
+          delayDays: 5,
+          purpose: 'Graceful break-up & direct founder rolodex connection',
+          subjectTemplate: 'Closing the file on {{companyName}}\'s workflow architecture',
+          bodyTemplate: `Hi {{contactName}},
+
+Since we haven't connected, I assume workflow automation and custom operational software are not an immediate priority for {{companyName}} at this moment.
+
+I'm closing out this file so I don't take up any more room in your inbox.
+
+If you ever need an agile full-stack engineering team to build a custom internal tool, ERP, or web platform with 100% code ownership, you have my direct email: techjesora@gmail.com | jesoratech.com.
+
+Wishing you and the entire {{companyName}} team continued success!
+
+Warm regards,
+Rajan Thakulla
+Founder & Lead Engineer | JESORA TECH`
         }
       ],
       createdAt: new Date().toISOString(),
@@ -983,6 +1198,17 @@ JESORA TECH | Tinkune, Kathmandu`
     };
 
     this.insertSequence(defaultSeq);
+    this.insertSequence(enterpriseSeq);
+
+    try {
+      this.db.prepare("UPDATE campaigns SET sequence_id = 'seq-enterprise-automation' WHERE id = 'camp-enterprise-erp-retail' AND sequence_id = 'seq-jesora-fullstack'").run();
+    } catch {}
+  }
+
+  // --- Defaults Seed ---
+  private seedDefaultsIfEmpty(): void {
+    const campaignCount = (this.db.prepare('SELECT COUNT(*) as c FROM campaigns').get() as any).c;
+    if (campaignCount > 0) return;
 
     // Seed default Campaigns
     const now = new Date().toISOString();
@@ -994,7 +1220,7 @@ JESORA TECH | Tinkune, Kathmandu`
       targetLocations: ['US', 'UK', 'Australia', 'Canada', 'Singapore'],
       keywords: ['SaaS', 'MVP', 'Next.js', 'React', 'Mobile App', 'Founder'],
       status: 'active',
-      sequenceId: defaultSeq.id,
+      sequenceId: 'seq-jesora-fullstack',
       dailyLimit: 35,
       leadsTargeted: 0,
       leadsContacted: 0,
@@ -1012,7 +1238,7 @@ JESORA TECH | Tinkune, Kathmandu`
       targetLocations: ['Nepal', 'India', 'Middle East', 'Global'],
       keywords: ['ERP', 'CRM', 'E-Commerce', 'Inventory', 'Clinic Management', 'School LMS'],
       status: 'active',
-      sequenceId: defaultSeq.id,
+      sequenceId: 'seq-enterprise-automation',
       dailyLimit: 25,
       leadsTargeted: 0,
       leadsContacted: 0,
@@ -1036,6 +1262,26 @@ JESORA TECH | Tinkune, Kathmandu`
         totalRuns: 0,
         totalActions: 0,
         currentTask: 'Standing by for scheduled discovery run'
+      },
+      {
+        agentId: 'website_verifier',
+        name: 'Website Presence Verifier Agent',
+        role: 'Live Domain & HTTP Availability Verifier',
+        description: 'Pings domains, verifies live DNS & SSL connectivity, detects parked domains, and discards businesses without working websites.',
+        status: 'idle',
+        totalRuns: 0,
+        totalActions: 0,
+        currentTask: 'Standing by to verify discovered domains'
+      },
+      {
+        agentId: 'site_auditor',
+        name: 'Site Flaw & Diagnostics Agent',
+        role: 'Technical Audit & Flaw Hunter',
+        description: 'Performs deep website audits on verified domains: benchmarks latency/TTFB, finds UI/UX flaws, audits security headers, and compiles structured diagnostic reports.',
+        status: 'idle',
+        totalRuns: 0,
+        totalActions: 0,
+        currentTask: 'Standing by for deep website flaw analysis'
       },
       {
         agentId: 'pitch_crafter',

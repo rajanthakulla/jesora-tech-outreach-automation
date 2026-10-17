@@ -1,5 +1,7 @@
 import { AppDatabase } from '../db/database.js';
 import { LeadScoutAgent } from '../agents/LeadScoutAgent.js';
+import { WebsiteVerifierAgent } from '../agents/WebsiteVerifierAgent.js';
+import { SiteAuditorAgent } from '../agents/SiteAuditorAgent.js';
 import { PitchCrafterAgent } from '../agents/PitchCrafterAgent.js';
 import { DispatcherAgent } from '../agents/DispatcherAgent.js';
 import { InboxMonitorAgent } from '../agents/InboxMonitorAgent.js';
@@ -10,6 +12,8 @@ import { AgentRole, AgentTelemetry, PipelineStats } from '../types/index.js';
 export class Orchestrator {
   public db: AppDatabase;
   public leadScout: LeadScoutAgent;
+  public websiteVerifier: WebsiteVerifierAgent;
+  public siteAuditor: SiteAuditorAgent;
   public pitchCrafter: PitchCrafterAgent;
   public dispatcher: DispatcherAgent;
   public inboxMonitor: InboxMonitorAgent;
@@ -25,6 +29,8 @@ export class Orchestrator {
   constructor(db?: AppDatabase) {
     this.db = db || new AppDatabase();
     this.leadScout = new LeadScoutAgent(this.db);
+    this.websiteVerifier = new WebsiteVerifierAgent(this.db);
+    this.siteAuditor = new SiteAuditorAgent(this.db);
     this.pitchCrafter = new PitchCrafterAgent(this.db);
     this.dispatcher = new DispatcherAgent(this.db);
     this.inboxMonitor = new InboxMonitorAgent(this.db);
@@ -35,6 +41,8 @@ export class Orchestrator {
   public getAgents(): Record<AgentRole, any> {
     return {
       lead_scout: this.leadScout,
+      website_verifier: this.websiteVerifier,
+      site_auditor: this.siteAuditor,
       pitch_crafter: this.pitchCrafter,
       dispatcher: this.dispatcher,
       inbox_monitor: this.inboxMonitor,
@@ -132,17 +140,27 @@ export class Orchestrator {
       totalActions += meetingRes.actionsTaken;
       cycleLog.push(`Meeting Closer: ${meetingRes.message}`);
 
-      // 3. Lead Scout (Prospect new clients for active campaigns)
+      // 3. Lead Scout (Prospect new clients with 100% verified name, email & physical address)
       const scoutRes = await this.leadScout.run();
       totalActions += scoutRes.actionsTaken;
       cycleLog.push(`Lead Scout: ${scoutRes.message}`);
 
-      // 4. Pitch Crafter (Generate tailored cold outreach & follow-ups)
+      // 4. Website Verifier (Probe live domain presence; discard dead/parked domains)
+      const verifierRes = await this.websiteVerifier.run();
+      totalActions += verifierRes.actionsTaken;
+      cycleLog.push(`Website Verifier: ${verifierRes.message}`);
+
+      // 5. Site Flaw Auditor (Run deep technical & conversion flaw diagnostics)
+      const auditorRes = await this.siteAuditor.run();
+      totalActions += auditorRes.actionsTaken;
+      cycleLog.push(`Site Flaw Auditor: ${auditorRes.message}`);
+
+      // 6. Pitch Crafter (Generate tailored cold outreach driven by flaw report)
       const pitchRes = await this.pitchCrafter.run();
       totalActions += pitchRes.actionsTaken;
       cycleLog.push(`Pitch Crafter: ${pitchRes.message}`);
 
-      // 5. Dispatcher (Deliver queued emails respecting pacing)
+      // 7. Dispatcher (Deliver queued emails respecting pacing)
       const dispatchRes = await this.dispatcher.run();
       totalActions += dispatchRes.actionsTaken;
       cycleLog.push(`Dispatcher: ${dispatchRes.message}`);
