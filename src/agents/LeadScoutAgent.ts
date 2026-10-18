@@ -174,6 +174,20 @@ export class LeadScoutAgent extends BaseAgent {
       return { isValid: false, reason: 'Missing decision maker contact name' };
     }
 
+    // 5. Strictly foreign markets only — filter out domestic South Asian territories (Nepal, India)
+    const domesticKeywords = [
+      'nepal', 'india', 'kathmandu', 'pokhara', 'lalitpur', 'bhaktapur', 'biratnagar',
+      'delhi', 'mumbai', 'bangalore', 'bengaluru', 'hyderabad', 'chennai', 'kolkata', 'pune', 'noida', 'gurugram', 'ahmedabad'
+    ];
+    const geoText = `${prospect.companyName} ${prospect.address} ${prospect.country}`.toLowerCase();
+    if (domesticKeywords.some(k => geoText.includes(k))) {
+      return { isValid: false, reason: 'Excluded territory (Domestic South Asian filter active — Foreign markets only: USA, UK, Canada, Malta, Europe)' };
+    }
+
+    if (domain.endsWith('.np') || domain.endsWith('.in')) {
+      return { isValid: false, reason: 'Excluded ccTLD (.np / .in) — Foreign markets only' };
+    }
+
     return { isValid: true };
   }
 
@@ -186,7 +200,6 @@ export class LeadScoutAgent extends BaseAgent {
     return [];
   }
 
-
   /**
    * Queries Geoapify Places API for live commercial businesses with 100% verified addresses
    */
@@ -194,22 +207,38 @@ export class LeadScoutAgent extends BaseAgent {
     const apiKey = process.env.GEOAPIFY_API_KEY;
     if (!apiKey) return [];
 
-    let searchCity = campaign.targetLocations[0] || 'London, UK';
-    const countryMap: Record<string, string> = {
-      'US': 'New York, NY',
-      'UK': 'London, UK',
-      'Australia': 'Sydney, Australia',
-      'Canada': 'Toronto, Canada',
-      'Singapore': 'Singapore',
-      'Nepal': 'Kathmandu, Nepal',
-      'India': 'Bangalore, India',
-      'Middle East': 'Dubai, United Arab Emirates',
-      'Global': 'London, UK'
+    // Filter out domestic locations and rotate across allowed foreign locations
+    const allowedLocations = (campaign.targetLocations || []).filter(loc => {
+      const lower = loc.toLowerCase();
+      return !lower.includes('nepal') && !lower.includes('india');
+    });
+
+    const candidateLoc = allowedLocations.length > 0
+      ? allowedLocations[Math.floor(Math.random() * allowedLocations.length)]
+      : 'US';
+
+    const cityPoolMap: Record<string, string[]> = {
+      'US': ['New York, NY', 'San Francisco, CA', 'Austin, TX', 'Chicago, IL', 'Miami, FL', 'Boston, MA'],
+      'USA': ['New York, NY', 'San Francisco, CA', 'Austin, TX', 'Chicago, IL', 'Miami, FL', 'Boston, MA'],
+      'UK': ['London, UK', 'Manchester, UK', 'Edinburgh, UK', 'Birmingham, UK', 'Bristol, UK'],
+      'Canada': ['Toronto, Canada', 'Vancouver, Canada', 'Montreal, Canada', 'Calgary, Canada'],
+      'Malta': ['Valletta, Malta', 'Birkirkara, Malta', 'Sliema, Malta', 'St. Julian\'s, Malta'],
+      'Germany': ['Berlin, Germany', 'Munich, Germany', 'Hamburg, Germany', 'Frankfurt, Germany'],
+      'Netherlands': ['Amsterdam, Netherlands', 'Rotterdam, Netherlands', 'Utrecht, Netherlands'],
+      'Ireland': ['Dublin, Ireland', 'Cork, Ireland', 'Galway, Ireland'],
+      'France': ['Paris, France', 'Lyon, France'],
+      'Sweden': ['Stockholm, Sweden', 'Gothenburg, Sweden'],
+      'Switzerland': ['Zurich, Switzerland', 'Geneva, Switzerland'],
+      'Australia': ['Sydney, Australia', 'Melbourne, Australia', 'Brisbane, Australia'],
+      'Europe': ['London, UK', 'Valletta, Malta', 'Amsterdam, Netherlands', 'Dublin, Ireland', 'Berlin, Germany'],
+      'Global': ['New York, NY', 'London, UK', 'Toronto, Canada', 'Valletta, Malta', 'Amsterdam, Netherlands']
     };
-    if (countryMap[searchCity]) {
-      searchCity = countryMap[searchCity];
+
+    let location = candidateLoc;
+    if (cityPoolMap[candidateLoc]) {
+      const cities = cityPoolMap[candidateLoc];
+      location = cities[Math.floor(Math.random() * cities.length)];
     }
-    const location = searchCity;
     this.log('info', `[Geoapify] Geocoding location "${location}"...`);
 
     // 1. Geocode location to coordinates
@@ -285,7 +314,11 @@ export class LeadScoutAgent extends BaseAgent {
     const apiKey = process.env.GOOGLE_PLACES_API_KEY;
     if (!apiKey) return [];
 
-    const location = campaign.targetLocations[0] || 'London, UK';
+    const allowedLocations = (campaign.targetLocations || []).filter(loc => {
+      const lower = loc.toLowerCase();
+      return !lower.includes('nepal') && !lower.includes('india');
+    });
+    const location = allowedLocations[Math.floor(Math.random() * allowedLocations.length)] || 'London, UK';
     const textQuery = `${campaign.targetNiche} in ${location}`;
     this.log('info', `[Google Places] Live searching: "${textQuery}"...`);
 

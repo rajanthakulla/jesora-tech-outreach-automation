@@ -1265,6 +1265,18 @@ Founder & Lead Engineer | JESORA TECH`
 
     try {
       this.db.prepare("UPDATE campaigns SET sequence_id = 'seq-enterprise-automation' WHERE id = 'camp-enterprise-erp-retail' AND sequence_id = 'seq-jesora-fullstack'").run();
+      this.db.prepare(`
+        UPDATE campaigns 
+        SET target_locations = '["US", "UK", "Canada", "Malta", "Germany", "Netherlands", "Ireland"]'
+        WHERE id = 'camp-global-startups'
+      `).run();
+      this.db.prepare(`
+        UPDATE campaigns 
+        SET target_locations = '["UK", "US", "Canada", "Malta", "Germany", "Netherlands", "Ireland", "Australia"]',
+            name = 'Enterprise ERP & Digital Modernization (US, UK, Malta & Europe)',
+            target_niche = 'Enterprise Services, Logistics, Healthcare, E-Commerce'
+        WHERE id = 'camp-enterprise-erp-retail'
+      `).run();
     } catch {}
   }
 
@@ -1278,9 +1290,9 @@ Founder & Lead Engineer | JESORA TECH`
     const campaign1: Campaign = {
       id: 'camp-global-startups',
       name: 'Global Startups & SaaS MVP Development',
-      description: 'Outreach to early-stage and growth startups seeking agile full-stack engineers with 100% code handover',
+      description: 'Outreach to early-stage and growth startups in US, UK, Canada, Malta & European markets seeking agile full-stack engineers with 100% code handover',
       targetNiche: 'SaaS, Startups, Web Platforms',
-      targetLocations: ['US', 'UK', 'Australia', 'Canada', 'Singapore'],
+      targetLocations: ['US', 'UK', 'Canada', 'Malta', 'Germany', 'Netherlands', 'Ireland'],
       keywords: ['SaaS', 'MVP', 'Next.js', 'React', 'Mobile App', 'Founder'],
       status: 'active',
       sequenceId: 'seq-jesora-fullstack',
@@ -1295,10 +1307,10 @@ Founder & Lead Engineer | JESORA TECH`
 
     const campaign2: Campaign = {
       id: 'camp-enterprise-erp-retail',
-      name: 'Enterprise ERP & High-Conversion E-Commerce',
-      description: 'Reaching mid-market retail, logistics, healthcare, and education businesses needing workflow automation and ERPs',
-      targetNiche: 'Enterprise ERP, Retail, Healthcare, EdTech',
-      targetLocations: ['Nepal', 'India', 'Middle East', 'Global'],
+      name: 'Enterprise ERP & Digital Modernization (US, UK, Malta & Europe)',
+      description: 'Reaching mid-market enterprises, logistics, healthcare, and retail businesses in US, Canada, UK, Malta & European markets needing workflow automation and custom ERPs',
+      targetNiche: 'Enterprise Services, Logistics, Healthcare, E-Commerce',
+      targetLocations: ['UK', 'US', 'Canada', 'Malta', 'Germany', 'Netherlands', 'Ireland', 'Australia'],
       keywords: ['ERP', 'CRM', 'E-Commerce', 'Inventory', 'Clinic Management', 'School LMS'],
       status: 'active',
       sequenceId: 'seq-enterprise-automation',
