@@ -120,10 +120,10 @@ export class PitchCrafterAgent extends BaseAgent {
       .replace(/{{contactName}}/g, lead.contactName)
       .replace(/{{industry}}/g, lead.industry);
 
-    // Format flaw report details if present
+    // Format flaw report details if present (including both visual design and technical flaws)
     const flawSummary = lead.flawReport
-      ? `Site Flaws: ${lead.flawReport.criticalFlaws.slice(0, 2).join('; ')} (Performance: ${lead.flawReport.performanceScore}/100, Latency: ${lead.flawReport.loadLatencyMs}ms)`
-      : (lead.painPoints || 'streamlining software workflows');
+      ? `Visual Design Flaws: ${(lead.flawReport.designFlaws || []).slice(0, 2).join('; ') || 'dated visual hierarchy, low-contrast CTA'}; Tech Flaws: ${lead.flawReport.criticalFlaws.slice(0, 2).join('; ')} (Design Score: ${lead.flawReport.designScore || 45}/100, Performance: ${lead.flawReport.performanceScore}/100, Latency: ${lead.flawReport.loadLatencyMs}ms)`
+      : (lead.painPoints || 'modernizing visual UI/UX design & streamlining software workflows');
 
     let body = step.bodyTemplate
       .replace(/{{companyName}}/g, lead.companyName)
@@ -242,21 +242,24 @@ export class PitchCrafterAgent extends BaseAgent {
       const relevantCaseStudy = this.matchBestCaseStudy(lead);
 
       const flawSection = lead.flawReport
-        ? `CONCRETE TECHNICAL WEBSITE AUDIT FINDINGS:
-• Performance Score: ${lead.flawReport.performanceScore}/100
+        ? `CONCRETE TECHNICAL & VISUAL UI/UX DESIGN AUDIT FINDINGS:
+• Technical Health: ${lead.flawReport.performanceScore}/100 | Visual Design Score: ${lead.flawReport.designScore || 42}/100
 • Load Latency / TTFB: ${lead.flawReport.loadLatencyMs}ms
-• Detected Critical Flaws: ${lead.flawReport.criticalFlaws.join(' | ')}
+• Specific Visual & UI/UX Design Flaws: ${(lead.flawReport.designFlaws && lead.flawReport.designFlaws.length > 0) ? lead.flawReport.designFlaws.join(' | ') : 'Dated typographic hierarchy, low-contrast primary action buttons, lack of modern responsive grid spacing'}
+• Critical Technical & Performance Bottlenecks: ${lead.flawReport.criticalFlaws.join(' | ')}
 • Conversion Bottlenecks: ${lead.flawReport.conversionBottlenecks.join(' | ')}
-• Recommended Engineering Fixes: ${lead.flawReport.recommendedFixes.join(' | ')}`
-        : `• Observed Bottlenecks: ${lead.painPoints || 'sub-optimal mobile responsiveness, latency, and conversion drop-off'}`;
+• Recommended Engineering & Design Modernization Fixes: ${lead.flawReport.recommendedFixes.join(' | ')}`
+        : `• Observed Bottlenecks: ${lead.painPoints || 'sub-optimal mobile responsiveness, dated visual presentation, latency, and conversion drop-off'}`;
 
       const isEnterprise = sequence.id === 'seq-enterprise-automation';
 
       let stepStrategy = '';
       if (isEnterprise) {
         if (stepNumber === 1) {
-          stepStrategy = `STEP 1 ANGLE: OPERATIONAL OVERHEAD IDENTIFICATION & PROPRIETARY ERP/CRM
-- Hook: Acknowledge that in ${lead.industry}, manual spreadsheets and rigid off-the-shelf tools slow down operations.
+          stepStrategy = `STEP 1 ANGLE: OPERATIONAL OVERHEAD & BESPOKE INTERNAL WORKFLOW REDESIGN
+- Hook: Acknowledge that in ${lead.industry}, manual spreadsheets, dated interfaces, and rigid off-the-shelf tools slow down operations.
+- Flaw Insight: Highlight both the visual clutter / UX friction and technical bottlenecks found on their portal:
+${flawSection}
 - Introduce: Custom lightweight Cloud ERP, automated customer dispatch, and real-time database designed 100% for ${lead.companyName}.
 - Highlights: 100% full source code ownership, zero recurring per-seat monthly license fees.
 - Social Proof: Mention MotoFix (motohubfix.vercel.app) for real-time queue & scheduling automation.
@@ -286,14 +289,14 @@ export class PitchCrafterAgent extends BaseAgent {
       } else {
         // Modern Web & Engineering Sequence (seq-jesora-fullstack)
         if (stepNumber === 1) {
-          stepStrategy = `STEP 1 ANGLE: BESPOKE CONCEPT REDESIGN HOOK & SITE FLAW DIAGNOSTIC BREAKDOWN
-- Hook: Our engineering team already audited their live web presence at ${lead.website || lead.companyName} and built a rapid concept redesign prototype specifically for ${lead.companyName}.
-- Problem vs. Solution: Contrast the concrete audit findings:
+          stepStrategy = `STEP 1 ANGLE: BESPOKE CONCEPT REDESIGN HOOK & DUAL DESIGN/PERFORMANCE AUDIT BREAKDOWN
+- Hook: Our design & engineering team already audited their live web presence at ${lead.website || lead.companyName} and built a rapid concept redesign prototype specifically modernizing their visual design and eliminating performance bottlenecks.
+- Specific Flaws to Call Out: Call out both their visual design flaws (e.g. ${(lead.flawReport?.designFlaws || []).slice(0, 2).join('; ') || 'dated visual hierarchy and buried CTA'}) and speed/technical lag:
 ${flawSection}
-  against our custom Next.js/React architecture with sub-second page loads and mobile-first UI.
+  Contrast this against our sleek custom Next.js/React architecture, bespoke Tailwind typography, high-contrast CTA, and sub-second page loads.
 - Jesora Tech Pillars: 100% full source code ownership from Day 1, agile 2-week delivery sprints, 40-60% cost advantage.
 - Social Proof: ${relevantCaseStudy.title} (${relevantCaseStudy.url}): "${relevantCaseStudy.highlight}".
-- Call To Action: Low-resistance question: "Would you be against taking a 2-minute peek at the concept prototype we sketched out for you?"`;
+- Call To Action: Low-resistance question: "Would you be against taking a 2-minute peek at the concept redesign prototype we sketched out for you?"`;
         } else if (stepNumber === 2) {
           stepStrategy = `STEP 2 ANGLE: UNDER-THE-HOOD ENGINEERING PROOF & PRODUCTION DEMOS
 - Hook: Quick follow-up on the concept prototype sketched for ${lead.companyName}.

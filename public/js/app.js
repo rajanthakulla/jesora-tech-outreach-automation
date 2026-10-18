@@ -396,8 +396,12 @@ function renderLeadsTable() {
         <td style="max-width: 260px;">
           <div style="font-size: 11px; color: #CBD5E1; line-height: 1.4;">${escapeHtml(l.techStack || 'Uninspected')}</div>
           ${l.flawReport ? `
-            <div style="font-size: 11px; color: #C084FC; font-weight: 600; margin-top: 4px; background: rgba(168, 85, 247, 0.1); padding: 2px 6px; border-radius: 4px; display: inline-block;">
-              🔬 Flaw Score: ${l.flawReport.performanceScore}/100 (${l.flawReport.loadLatencyMs}ms TTFB)
+            <div style="font-size: 10px; font-weight: 600; margin-top: 4px; background: rgba(168, 85, 247, 0.1); padding: 3px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <span style="color: #C084FC;">🔬 Tech: ${l.flawReport.performanceScore}/100</span>
+              <span style="color: #64748B;">•</span>
+              <span style="color: #F472B6;">🎨 Design: ${l.flawReport.designScore || 45}/100</span>
+              <span style="color: #64748B;">•</span>
+              <span style="color: #94A3B8;">${l.flawReport.loadLatencyMs}ms</span>
             </div>
           ` : ''}
           ${l.painPoints ? `<div style="font-size: 11px; color: var(--accent-amber); margin-top: 3px;">⚠️ ${escapeHtml(l.painPoints)}</div>` : ''}
@@ -912,21 +916,40 @@ async function openLeadDrawer(leadId) {
 
       ${lead.flawReport ? `
         <div style="background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 10px; padding: 16px; margin-bottom: 20px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
             <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 18px;">🔬</span>
+              <span style="font-size: 20px;">🔬</span>
               <div>
-                <h4 style="font-size: 13px; font-weight: 700; color: #E9D5FF; margin: 0;">Site Flaw Diagnostic Report</h4>
+                <h4 style="font-size: 13px; font-weight: 700; color: #E9D5FF; margin: 0;">Site & Visual Design Diagnostic Report</h4>
                 <div style="font-size: 10px; color: var(--text-muted);">Audited ${formatTimeAgo(lead.flawReport.auditedAt)}</div>
               </div>
             </div>
-            <div style="text-align: right;">
-              <div style="font-size: 18px; font-weight: 800; color: ${lead.flawReport.performanceScore < 60 ? '#F87171' : '#FBBF24'};">
-                ${lead.flawReport.performanceScore}/100
+            <div style="display: flex; gap: 16px; text-align: right;">
+              <div>
+                <div style="font-size: 17px; font-weight: 800; color: ${lead.flawReport.performanceScore < 60 ? '#F87171' : '#FBBF24'};">
+                  ${lead.flawReport.performanceScore}/100
+                </div>
+                <div style="font-size: 10px; color: var(--text-muted);">Tech Health (${lead.flawReport.loadLatencyMs}ms)</div>
               </div>
-              <div style="font-size: 10px; color: var(--text-muted);">Health Score (${lead.flawReport.loadLatencyMs}ms TTFB)</div>
+              <div style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 16px;">
+                <div style="font-size: 17px; font-weight: 800; color: ${(lead.flawReport.designScore || 45) < 60 ? '#F472B6' : '#60A5FA'};">
+                  ${lead.flawReport.designScore || 45}/100
+                </div>
+                <div style="font-size: 10px; color: var(--text-muted); text-transform: capitalize;">${lead.flawReport.visualHierarchyRating || 'Dated'} Design</div>
+              </div>
             </div>
           </div>
+
+          ${lead.flawReport.designFlaws && lead.flawReport.designFlaws.length > 0 ? `
+            <div style="margin-bottom: 12px; background: rgba(236, 72, 153, 0.06); border: 1px solid rgba(236, 72, 153, 0.25); border-radius: 8px; padding: 10px 12px;">
+              <div style="font-size: 10px; font-weight: 700; color: #F472B6; text-transform: uppercase; margin-bottom: 5px; display: flex; align-items: center; gap: 6px;">
+                <span>🎨</span> Visual & UI/UX Design Flaws
+              </div>
+              <ul style="margin: 0; padding-left: 18px; font-size: 11px; color: #F1F5F9; line-height: 1.5;">
+                ${lead.flawReport.designFlaws.map(df => `<li style="margin-bottom: 4px;">${escapeHtml(df)}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
 
           <div style="margin-bottom: 12px;">
             <div style="font-size: 10px; font-weight: 700; color: #FCA5A5; text-transform: uppercase; margin-bottom: 4px;">Critical Architectural Flaws</div>
@@ -943,7 +966,7 @@ async function openLeadDrawer(leadId) {
           </div>
 
           <div>
-            <div style="font-size: 10px; font-weight: 700; color: #86EFAC; text-transform: uppercase; margin-bottom: 4px;">Recommended Engineering Fixes</div>
+            <div style="font-size: 10px; font-weight: 700; color: #86EFAC; text-transform: uppercase; margin-bottom: 4px;">Recommended Modernization Fixes</div>
             <ul style="margin: 0; padding-left: 18px; font-size: 11px; color: #CBD5E1; line-height: 1.5;">
               ${lead.flawReport.recommendedFixes.map(fix => `<li style="margin-bottom: 3px;">${escapeHtml(fix)}</li>`).join('')}
             </ul>

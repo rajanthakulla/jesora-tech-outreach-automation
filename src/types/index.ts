@@ -13,12 +13,15 @@ export type LeadStatus =
 
 export interface SiteFlawReport {
   performanceScore: number;
+  designScore: number; // Visual UI/UX & Aesthetic Score (0-100)
   mobileResponsive: boolean;
   loadLatencyMs: number;
   detectedTech: string[];
   criticalFlaws: string[];
+  designFlaws: string[]; // Specific UI/UX design, visual hierarchy, layout & typography flaws
   conversionBottlenecks: string[];
   recommendedFixes: string[];
+  visualHierarchyRating?: 'dated' | 'average' | 'clean' | 'modern';
   summary: string;
   auditedAt: string;
 }
