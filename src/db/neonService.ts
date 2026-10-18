@@ -30,7 +30,13 @@ export function getNeonPool(): pg.Pool {
     ssl: { rejectUnauthorized: false },
     max: 10,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000
+    connectionTimeoutMillis: 10000,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10000
+  });
+
+  poolInstance.on('error', (err: any) => {
+    console.warn('[Neon Pool Warning] Idle client connection reset/error (reconnecting automatically):', err?.message || err);
   });
 
   return poolInstance;

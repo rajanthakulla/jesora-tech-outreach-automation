@@ -40,6 +40,13 @@ async function bootstrap() {
 
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
+
+  process.on('uncaughtException', (err: any) => {
+    console.error('[Process Warning - Recovered]', err?.message || err);
+  });
+  process.on('unhandledRejection', (reason: any) => {
+    console.error('[Unhandled Rejection - Recovered]', reason?.message || reason);
+  });
 }
 
 bootstrap().catch(err => {
