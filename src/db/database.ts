@@ -1039,136 +1039,167 @@ export class AppDatabase {
         {
           stepNumber: 1,
           delayDays: 0,
-          purpose: 'Concept redesign hook & site flaw diagnostic breakdown',
-          subjectTemplate: 'Built a concept redesign for {{companyName}} / Quick question',
+          purpose: 'Web development opportunities & digital presence review',
+          subjectTemplate: '{{companyName}} digital presence & website review',
           bodyTemplate: `Hi {{contactName}},
 
-I didn't want to reach out empty-handed, so our engineering team at JESORA TECH (jesoratech.com) actually put together a rapid concept redesign & performance audit for {{companyName}} after analyzing your current web experience.
+I came across {{companyName}} while researching {{industry}} businesses in your area, and your strong local reputation caught my attention.
 
-Here is the quick diagnostic breakdown of what our audit flagged vs. what we architected:
+Today, a business website is more than an online presence. It's often the first place potential customers go to evaluate a company, explore its services, and decide whether to get in touch.
 
-• OBSERVED BOTTLENECK:
-{{painPoints}}
+Based on my research into {{companyName}}, I noticed three potential opportunities to strengthen your digital presence:
 
-• THE SOLUTION WE ARCHITECTED:
-A modern Next.js/React architecture with sub-second page loads, responsive mobile-first UI, and clean API workflows designed to stop visitor bounce rates and maximize conversions.
+Where your website could improve
 
-Unlike traditional agencies that keep your software hostage, we operate with a developer-first ethos:
-1. 100% Full Source Code Ownership handed directly to you from Day 1.
-2. Agile 2-week delivery sprints with demonstrable live staging demos.
-3. 40–60% development cost advantage with Silicon Valley engineering standards.
+01 — Mobile responsiveness & loading speed
+Potential clients browsing on smartphones often experience formatting delays and navigation friction, leading many to drop off before contacting you.
 
-Would you be against taking a 2-minute peek at the concept prototype we sketched out for you?
+02 — No direct after-hours online booking or inquiry option
+Customers wishing to schedule consultations or service visits in the evening or weekends have no automated way to book, forcing all intake onto manual telephone calls.
+
+03 — Clarity of services and call-to-action
+First-time visitors need immediate confidence through clean service breakdowns and visible client reviews to take the next step without hesitation.
+
+How JESORA TECH can help
+
+At JESORA TECH, we design and develop modern, high-performing websites tailored to each business's goals, audience, and brand identity.
+
+01 — Mobile-First Responsive Website Design
+A clean, professional website engineered for instant loading on smartphones, tablets, and computers, ensuring {{companyName}} makes a strong first impression.
+
+02 — Automated 24/7 Client Booking & Inquiry Portal
+An intuitive, mobile-friendly booking system that allows prospective clients to request appointments or inquiries directly at any time of day.
+
+03 — Local Search & Google Visibility Optimization
+Structured service pages and Google local search optimization to help {{companyName}} attract organic search traffic in your area.
+
+Our goal isn't simply to build a visually appealing website. It's to create a digital experience that communicates your value clearly, builds customer confidence, and makes it easier for potential customers to take the next step.
+
+We'd start by understanding your business objectives and existing website, then recommend practical improvements aligned with your priorities and budget.
+
+Would you be open to a brief 10-minute conversation next week? I'd be happy to share a few website improvement ideas specifically for {{companyName}}.
 
 Best regards,
+
 Rajan Thakulla
-Founder & Lead Engineer | JESORA TECH
-Tinkune, Kathmandu | techjesora@gmail.com | jesoratech.com`
+Lead Engineer | JESORA TECH
+[techjesora@gmail.com](mailto:techjesora@gmail.com)
+jesoratech.com`
         },
         {
           stepNumber: 2,
           delayDays: 3,
-          purpose: 'Case study proof & interactive prototype walkthrough',
-          subjectTemplate: 'Re: Built a concept redesign for {{companyName}} (Production teardown)',
+          purpose: 'Follow-up on website opportunities & practical recommendations',
+          subjectTemplate: 'Re: {{companyName}} digital presence & website review',
           bodyTemplate: `Hi {{contactName}},
 
-Following up quickly on my note about the concept prototype we sketched for {{companyName}}.
+Following up quickly on my note regarding {{companyName}}'s website and digital presence.
 
-To give you an idea of our execution standard: we recently engineered WriteWell (writewell.space) — an AI SaaS platform with real-time text processing and zero latency — as well as MotoFix (motohubfix.vercel.app), a live workshop booking & enterprise queue system.
+Whether you're looking to modernize an existing website, add online booking, or improve customer conversion on mobile devices, we design practical solutions built specifically around your priorities and budget.
 
-Whether you're looking to turn that concept into reality, build a custom web portal, or automate internal operations, we deliver turnkey production code with zero agency lock-in.
+Would you be open to a brief 10-minute conversation this week? I'd welcome the chance to share a few website improvement ideas tailored for {{companyName}}.
 
-Would love to share the private preview with you. Are you open to a brief 10-minute chat this Thursday?
+Best regards,
 
-Alternatively, feel free to pick any slot that fits your schedule:
-{{calendarBookingUrl}}
-
-Warm regards,
-Rajan Thakulla | JESORA TECH Team`
+Rajan Thakulla
+Lead Engineer | JESORA TECH
+[techjesora@gmail.com](mailto:techjesora@gmail.com)
+jesoratech.com`
         },
         {
           stepNumber: 3,
           delayDays: 3,
-          purpose: 'Technical site flaw audit teardown & mobile conversion friction',
-          subjectTemplate: '3 performance bottlenecks losing {{companyName}} leads (+ Next.js fix)',
+          purpose: 'Client conversion & booking friction review',
+          subjectTemplate: '3 website improvements to consider for {{companyName}}',
           bodyTemplate: `Hi {{contactName}},
 
-While fine-tuning the concept prototype for {{companyName}}, our team ran a deeper technical benchmark on your live site. Three specific friction points jumped out:
+I wanted to follow up with a quick observation regarding {{companyName}}'s online customer intake.
 
-1. Latency & Core Web Vitals: Mobile visitors are experiencing rendering delays and layout shift before core call-to-actions load, which silently drives bounce rates up by 30-40%.
-2. Interactive Conversion Funnel: The current inquiry/contact pathway requires too many manual steps instead of an instantaneous, friction-free booking flow.
-3. Modern Stack Upgrade: Transitioning from legacy CMS/monolithic code to a decoupled Next.js & Tailwind setup would immediately slash hosting overhead and deliver instant sub-second page transitions.
+Most local businesses lose between 25% and 40% of prospective clients due to three simple factors:
+1. Mobile loading delays where customers leave before exploring services.
+2. Complicated contact forms that require too many steps to complete.
+3. Lack of an instant booking or callback request option outside normal hours.
 
-We already addressed all three in the prototype build.
+We build modern, high-performing websites that eliminate these bottlenecks so you turn more visitors into confirmed clients.
 
-Would it be helpful if I recorded a brief 2-minute Loom video walking through the interactive differences?
+Would you be against a 10-minute chat next week to see a few concepts we put together for {{companyName}}?
 
-Best,
+Best regards,
+
 Rajan Thakulla
-JESORA TECH | jesoratech.com`
+Lead Engineer | JESORA TECH
+[techjesora@gmail.com](mailto:techjesora@gmail.com)
+jesoratech.com`
         },
         {
           stepNumber: 4,
           delayDays: 3,
-          purpose: 'Value offering: Free technical architecture & feasibility blueprint',
-          subjectTemplate: 'Free architecture blueprint for {{companyName}} (Zero obligations)',
+          purpose: 'Complimentary website roadmap (Zero obligations)',
+          subjectTemplate: 'Complimentary website recommendations for {{companyName}}',
           bodyTemplate: `Hi {{contactName}},
 
-I know how demanding your schedule is leading {{companyName}}. 
+I know how busy your schedule is managing {{companyName}}.
 
-To remove all friction, we’d love to gift you our complete Technical Architecture & Feasibility Blueprint for {{companyName}} — completely on the house.
+To make things easy, our team would be glad to put together a high-level Website Improvement Roadmap for {{companyName}} — completely free with zero obligations.
 
-Our senior software architects will map out:
-• Recommended modern stack (Next.js, Node.js, Python, PostgreSQL)
-• Database schema & API integration roadmap
-• Realistic 2-week milestone sprint breakdown & cost estimation
+It outlines:
+• Recommended mobile layout and navigation improvements
+• Suggested online booking flow for new client inquiries
+• Estimated timeframe and clear, straightforward budget options
 
-Even if you choose to build it internally or with someone else, the blueprint and architecture diagrams are yours to keep.
+Even if you decide to handle it internally down the road, the recommendations are yours to keep.
 
-If this sounds helpful, grab 15 minutes here:
-{{calendarBookingUrl}}
+If you'd like to review it together, feel free to reply or pick a convenient time: {{calendarBookingUrl}}
 
-Best,
-Rajan Thakulla | JESORA TECH`
+Best regards,
+
+Rajan Thakulla
+Lead Engineer | JESORA TECH
+[techjesora@gmail.com](mailto:techjesora@gmail.com)
+jesoratech.com`
         },
         {
           stepNumber: 5,
           delayDays: 4,
-          purpose: 'Staging preview & transparent sprint pricing breakdown',
-          subjectTemplate: 'Quick staging preview & sprint breakdown for {{companyName}}',
+          purpose: 'Transparent sprint economics & project delivery',
+          subjectTemplate: 'Our approach to website delivery for {{companyName}}',
           bodyTemplate: `Hi {{contactName}},
 
-I wanted to share how we work with companies like {{companyName}} to eliminate the usual software delivery headaches.
+I wanted to share how we work with companies like {{companyName}} to deliver web projects efficiently and transparently.
 
-Instead of vague 6-month contracts with bloated agency retainers, we work in focused 2-week sprints:
-• Fixed, transparent sprint rates (typically 40-60% below US/Western European agency quotes)
-• Production deployment to your own private AWS/Vercel cloud every Friday
-• Daily async Loom updates & GitHub PR access from day one
-• Zero junior hand-offs — all work is driven by experienced full-stack engineers
+Instead of prolonged agency contracts, we deliver in focused 2-week milestones:
+• Clear, fixed pricing with zero hidden fees
+• 100% full source code ownership handed over from day one
+• Direct communication with experienced engineers throughout the build
 
-If you'd like to review the concept preview we set up for {{companyName}} or discuss any technical roadmap priorities, feel free to book a quick introductory call:
-{{calendarBookingUrl}}
+If you'd like to explore practical improvements for {{companyName}}, I'd be happy to connect for a quick 10-minute discussion.
 
-Warm regards,
+Best regards,
+
 Rajan Thakulla
-Founder & Lead Engineer | JESORA TECH`
+Lead Engineer | JESORA TECH
+[techjesora@gmail.com](mailto:techjesora@gmail.com)
+jesoratech.com`
         },
         {
           stepNumber: 6,
           delayDays: 4,
-          purpose: 'Graceful break-up & long-term founder connection',
-          subjectTemplate: 'Permission to archive {{companyName}}\'s concept prototype?',
+          purpose: 'Graceful break-up & contact archive',
+          subjectTemplate: 'Closing the file for {{companyName}}',
           bodyTemplate: `Hi {{contactName}},
 
-I haven't heard back, so I assume modernizing the web platform or custom software is not on {{companyName}}'s priority list right now.
+I haven't heard back, so I assume updating your website isn't a current priority for {{companyName}} right now.
 
-I will safely archive the concept preview so I don't clutter your inbox further. If your engineering needs ever expand or you need an agile dev team for an urgent sprint, feel free to reach out anytime: techjesora@gmail.com | jesoratech.com
+I'll safely archive my notes so I don't clutter your inbox further. If website improvements or custom development ever become a focus in the future, please feel free to reach out anytime: techjesora@gmail.com | jesoratech.com
 
-Wishing you and {{companyName}} immense growth!
+Wishing you and {{companyName}} continued success!
 
-Warm regards,
+Best regards,
+
 Rajan Thakulla
-JESORA TECH`
+Lead Engineer | JESORA TECH
+[techjesora@gmail.com](mailto:techjesora@gmail.com)
+jesoratech.com`
         }
       ],
       createdAt: new Date().toISOString(),
@@ -1177,58 +1208,84 @@ JESORA TECH`
 
     const enterpriseSeq: EmailSequence = {
       id: 'seq-enterprise-automation',
-      name: 'Jesora Tech Enterprise ERP, CRM & Workflow Automation Sequence',
-      description: '5-touch high-converting sequence for mid-market retail, healthcare, clinics, logistics, and education businesses needing bespoke workflow automation, internal tools, and high-performance ERP portals.',
-      targetAudience: 'Operations Heads, Managing Directors, and Retail/Healthcare executives seeking custom internal software, automated operations, and zero recurring SaaS license fees',
+      name: 'Jesora Tech Enterprise Automation & Operations Sequence',
+      description: 'Consultative automation sequence for growing organizations seeking workflow automation, connected systems, and zero per-user software fees.',
+      targetAudience: 'Business Owners and Operations Managers seeking custom workflow automation and integrated business tools',
       steps: [
         {
           stepNumber: 1,
           delayDays: 0,
-          purpose: 'Operational overhead identification & custom ERP solution',
-          subjectTemplate: 'Automating {{companyName}}\'s internal workflows & database operations',
+          purpose: 'Operational overhead identification & custom automation solution',
+          subjectTemplate: 'Streamlining operational workflows for {{companyName}}',
           bodyTemplate: `Hi {{contactName}},
 
-Most growing organizations in {{industry}} reach a threshold where off-the-shelf software and manual spreadsheets become a bottleneck: fragmented records, slow customer response times, and recurring SaaS subscription fees.
+I came across {{companyName}} while researching {{industry}} businesses in your area, and your active customer service presence caught my attention.
 
-At JESORA TECH (jesoratech.com), we architect bespoke, lightweight Cloud ERPs, booking portals, and internal workflow tools tailored 100% to your exact business rules:
+As businesses grow, processes that once worked well can become increasingly time-consuming. Repetitive tasks, manual coordination, and disconnected systems can create operational friction and leave teams with less time to focus on what matters most.
 
-• Centralized operations dashboard for {{companyName}}
-• Real-time database synchronizing customer inquiries, appointments, and inventory
-• Automated WhatsApp & Email notifications triggered on key operational events
-• 100% Source Code Ownership with zero recurring per-user SaaS license fees
+Based on my research, I identified three potential opportunities for {{companyName}} to streamline its operations.
 
-We've recently engineered custom platforms like MotoFix (motohubfix.vercel.app) to automate live service queues and customer scheduling end-to-end.
+Where automation could make a difference
 
-Would you be open to a 10-minute discovery call to see where {{companyName}} could eliminate 10+ hours of manual administrative overhead each week?
+01 — Manual Appointment Scheduling and Inquiries
+Handling customer bookings and reschedules via phone calls or manual messages consumes valuable staff time and risks missed inquiries during peak business hours.
+
+02 — Disconnected Client Records and Status Tracking
+Relying on separate spreadsheets or paper logs makes it difficult to track client history, lesson schedules, or service queues in real time.
+
+03 — Manual Reminders and Follow-Up Communications
+Without automated confirmation messages, appointment no-shows and last-minute cancellations can disrupt daily scheduling and revenue.
+
+How JESORA TECH can help
+
+At JESORA TECH, we design and implement custom automation solutions that reduce repetitive work, connect business systems, and simplify everyday operations.
+
+01 — Automated Self-Service Scheduling
+A streamlined digital booking system that lets clients view availability and schedule appointments online 24/7, freeing your team from routine phone coordination.
+
+02 — Centralized Customer & Workflow Dashboard
+A unified operational dashboard where your staff can view upcoming schedules, client history, and real-time status updates in one organized place.
+
+03 — Automated Notifications & Reminders
+Instant confirmation emails and SMS appointment reminders sent automatically, drastically reducing no-shows and keeping clients informed.
+
+Our approach is simple: understand how your business operates today, identify the bottlenecks worth solving, and implement practical automation that fits your existing workflows.
+
+The goal isn't to automate everything. It's to eliminate unnecessary manual work, improve consistency, and give your team more time to focus on growth.
+
+Would you be open to a quick 10-minute conversation next week? I'd be happy to discuss a few automation opportunities tailored specifically to {{companyName}}.
 
 Best regards,
+
 Rajan Thakulla
 Lead Engineer | JESORA TECH
-techjesora@gmail.com | jesoratech.com`
+[techjesora@gmail.com](mailto:techjesora@gmail.com)
+jesoratech.com`
         },
         {
           stepNumber: 2,
           delayDays: 3,
-          purpose: 'Case study teardown & operational time-savings',
-          subjectTemplate: 'How automated queue systems eliminated 15+ hours/wk of manual admin',
+          purpose: 'Operational time-savings & practical implementation',
+          subjectTemplate: 'How workflow automation eliminates 10+ hours/wk of manual admin',
           bodyTemplate: `Hi {{contactName}},
 
-Following up on my message regarding workflow automation for {{companyName}}.
+Following up on my note regarding workflow automation opportunities for {{companyName}}.
 
-To see how this works in practice: we engineered MotoFix (motohubfix.vercel.app), a live workshop booking and queue management system. Before the platform, customer check-ins and job statuses were tracked manually on whiteboards and phone calls.
+When businesses automate repetitive scheduling and customer intake:
+• Client self-booking captures inquiries immediately, even outside business hours
+• Automated confirmations and reminders virtually eliminate appointment no-shows
+• Centralized records give your entire team immediate visibility without paperwork
 
-The automated system introduced:
-• Instant customer self-booking and real-time bay queue tracking
-• Automated service milestones and digital invoice generation
-• Complete cloud-backed database accessible across desktop and mobile
+We design and implement these solutions to fit right into your existing operations, delivering full source code ownership with zero recurring per-user software fees.
 
-We build and deploy these enterprise tools in 2 to 4-week agile sprints, transferring 100% full source code ownership directly to your company.
+Would you be open to a brief 10-minute introductory call this week?
 
-Would this Thursday or Friday work for a brief 10-minute introductory call?
-{{calendarBookingUrl}}
+Best regards,
 
-Warm regards,
-Rajan Thakulla | JESORA TECH`
+Rajan Thakulla
+Lead Engineer | JESORA TECH
+[techjesora@gmail.com](mailto:techjesora@gmail.com)
+jesoratech.com`
         },
         {
           stepNumber: 3,
@@ -1248,9 +1305,12 @@ With JESORA TECH, you invest once in a custom Next.js/PostgreSQL web application
 
 Would you like us to put together a high-level feasibility outline showing what a custom portal for {{companyName}} would look like?
 
-Best,
+Best regards,
+
 Rajan Thakulla
-JESORA TECH | jesoratech.com`
+Lead Engineer | JESORA TECH
+[techjesora@gmail.com](mailto:techjesora@gmail.com)
+jesoratech.com`
         },
         {
           stepNumber: 4,
@@ -1272,8 +1332,11 @@ If you'd like us to prepare this, feel free to book 15 minutes with our lead eng
 {{calendarBookingUrl}}
 
 Best regards,
+
 Rajan Thakulla
-JESORA TECH`
+Lead Engineer | JESORA TECH
+[techjesora@gmail.com](mailto:techjesora@gmail.com)
+jesoratech.com`
         },
         {
           stepNumber: 5,
@@ -1290,9 +1353,12 @@ If you ever need an agile full-stack engineering team to build a custom internal
 
 Wishing you and the entire {{companyName}} team continued success!
 
-Warm regards,
+Best regards,
+
 Rajan Thakulla
-Founder & Lead Engineer | JESORA TECH`
+Lead Engineer | JESORA TECH
+[techjesora@gmail.com](mailto:techjesora@gmail.com)
+jesoratech.com`
         }
       ],
       createdAt: new Date().toISOString(),

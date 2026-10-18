@@ -1,22 +1,158 @@
 import { BaseAgent } from './BaseAgent.js';
 import { AppDatabase } from '../db/database.js';
-import { Lead, OutreachMessage, EmailSequence, SequenceStep } from '../types/index.js';
+import { Lead, OutreachMessage, EmailSequence } from '../types/index.js';
 import crypto from 'node:crypto';
+
+export type PitchTrack = 'web_development' | 'automation' | 'erp';
+
+const WEB_DEV_TEMPLATE = `Hi {{first_name_or_team}},
+
+I came across {{company_name}} while researching {{industry}} businesses in {{city}}, and {{personalized_observation}} caught my attention.
+
+Today, a business website is more than an online presence. It's often the first place potential customers go to evaluate a company, explore its services, and decide whether to get in touch.
+
+Based on my research into {{company_name}}, I noticed three potential opportunities to strengthen your digital presence:
+
+Where your website could improve
+
+01 — {{website_problem_1}}
+{{website_problem_1_business_impact}}
+
+02 — {{website_problem_2}}
+{{website_problem_2_business_impact}}
+
+03 — {{website_problem_3}}
+{{website_problem_3_business_impact}}
+
+How JESORA TECH can help
+
+At JESORA TECH, we design and develop modern, high-performing websites tailored to each business's goals, audience, and brand identity.
+
+01 — {{website_solution_1_title}}
+{{website_solution_1_description_and_benefit}}
+
+02 — {{website_solution_2_title}}
+{{website_solution_2_description_and_benefit}}
+
+03 — {{website_solution_3_title}}
+{{website_solution_3_description_and_benefit}}
+
+Our goal isn't simply to build a visually appealing website. It's to create a digital experience that communicates your value clearly, builds customer confidence, and makes it easier for potential customers to take the next step.
+
+We'd start by understanding your business objectives and existing website, then recommend practical improvements aligned with your priorities and budget.
+
+Would you be open to a brief 10-minute conversation next week? I'd be happy to share a few website improvement ideas specifically for {{company_name}}.
+
+Best regards,
+
+Rajan Thakulla
+Lead Engineer | JESORA TECH
+[techjesora@gmail.com](mailto:techjesora@gmail.com)
+jesoratech.com`;
+
+const AUTOMATION_TEMPLATE = `Hi {{first_name_or_team}},
+
+I came across {{company_name}} while researching {{industry}} businesses in {{city}}, and {{personalized_observation}} caught my attention.
+
+As businesses grow, processes that once worked well can become increasingly time-consuming. Repetitive tasks, manual coordination, and disconnected systems can create operational friction and leave teams with less time to focus on what matters most.
+
+Based on my research, I identified three potential opportunities for {{company_name}} to streamline its operations.
+
+Where automation could make a difference
+
+01 — {{current_process_1}}
+{{process_1_challenge_and_impact}}
+
+02 — {{current_process_2}}
+{{process_2_challenge_and_impact}}
+
+03 — {{current_process_3}}
+{{process_3_challenge_and_impact}}
+
+How JESORA TECH can help
+
+At JESORA TECH, we design and implement custom automation solutions that reduce repetitive work, connect business systems, and simplify everyday operations.
+
+01 — {{automation_solution_1}}
+{{solution_1_description_and_benefit}}
+
+02 — {{automation_solution_2}}
+{{solution_2_description_and_benefit}}
+
+03 — {{automation_solution_3}}
+{{solution_3_description_and_benefit}}
+
+Our approach is simple: understand how your business operates today, identify the bottlenecks worth solving, and implement practical automation that fits your existing workflows.
+
+The goal isn't to automate everything. It's to eliminate unnecessary manual work, improve consistency, and give your team more time to focus on growth.
+
+Would you be open to a quick 10-minute conversation next week? I'd be happy to discuss a few automation opportunities tailored specifically to {{company_name}}.
+
+Best regards,
+
+Rajan Thakulla
+Lead Engineer | JESORA TECH
+[techjesora@gmail.com](mailto:techjesora@gmail.com)
+jesoratech.com`;
+
+const ERP_TEMPLATE = `Hi {{first_name_or_team}},
+
+I came across {{company_name}} while researching {{industry}} businesses in {{city}}, and {{personalized_observation}} caught my attention.
+
+As businesses expand, managing different functions across separate systems, spreadsheets, and manual processes can make it harder to maintain visibility, coordinate teams, and make timely decisions.
+
+Based on my research into {{company_name}}, I identified three potential areas where a more connected business management system could create value.
+
+Where operational challenges may arise
+
+01 — {{erp_problem_1}}
+{{erp_problem_1_business_impact}}
+
+02 — {{erp_problem_2}}
+{{erp_problem_2_business_impact}}
+
+03 — {{erp_problem_3}}
+{{erp_problem_3_business_impact}}
+
+How JESORA TECH can help
+
+At JESORA TECH, we develop customized Enterprise Resource Planning (ERP) solutions that bring essential business operations into one integrated platform, tailored to your company's workflows and growth objectives.
+
+01 — Integrated Business Operations
+{{erp_solution_1_description_and_benefit}}
+
+02 — Real-Time Data and Reporting
+{{erp_solution_2_description_and_benefit}}
+
+03 — Workflow Automation and Centralized Control
+{{erp_solution_3_description_and_benefit}}
+
+Rather than forcing your business to adapt to a rigid, off-the-shelf system, we focus on designing an ERP solution around your actual processes, existing systems, and operational priorities.
+
+The objective is simple: better visibility, smoother coordination, and greater control over your business operations—all through one connected system.
+
+Would you be open to a brief 10–15-minute conversation next week? I'd welcome the opportunity to understand how {{company_name}} currently manages its operations and explore whether a tailored ERP solution would be a worthwhile investment.
+
+Best regards,
+
+Rajan Thakulla
+Lead Engineer | JESORA TECH
+[techjesora@gmail.com](mailto:techjesora@gmail.com)
+jesoratech.com`;
 
 export class PitchCrafterAgent extends BaseAgent {
   constructor(db: AppDatabase) {
     super(
       'pitch_crafter',
       'Pitch Crafter Agent',
-      'AI Personalization & Sequence Architecture',
-      'Architects personalized multi-step cold outreach sequences matching prospect tech gaps to Jesora Tech case studies.',
+      'Consultative Outreach Copywriting & Sequencing',
+      'Generates tech-literate, non-technical business proposals in strict accordance with Jesora Tech formats.',
       db
     );
   }
 
   protected async executeCycle(): Promise<{ actionsTaken: number; message: string }> {
     this.setTask('Finding leads ready for outreach copy generation...');
-    const settings = this.db.getSettings();
     const sequences = this.db.getAllSequences();
     const defaultSeq = sequences[0];
 
@@ -26,7 +162,7 @@ export class PitchCrafterAgent extends BaseAgent {
 
     let craftedCount = 0;
 
-    // 1. Process 'audited' (deep site diagnostics ready) and 'scouted' leads (ready for Step 1)
+    // 1. Process 'audited' and 'scouted' leads (ready for Step 1)
     const auditedLeads = this.db.getAllLeads('audited');
     const scoutedLeads = this.db.getAllLeads('scouted');
     const leadsReadyForStep1 = [...auditedLeads, ...scoutedLeads];
@@ -35,7 +171,7 @@ export class PitchCrafterAgent extends BaseAgent {
       const campaign = lead.campaignId ? this.db.getCampaign(lead.campaignId) : null;
       const targetSeq = (campaign?.sequenceId ? this.db.getSequenceById(campaign.sequenceId) : null) || defaultSeq;
 
-      this.setTask(`Crafting personalized flaw-based Step 1 pitch for ${lead.companyName}...`);
+      this.setTask(`Crafting consultative pitch for ${lead.companyName}...`);
       const scheduledMsg = await this.craftMessageForLead(lead, 1, targetSeq);
       if (scheduledMsg) {
         this.db.insertMessage(scheduledMsg);
@@ -48,8 +184,7 @@ export class PitchCrafterAgent extends BaseAgent {
         this.log('info', `Crafted Step 1 email for ${lead.companyName} (${lead.contactName})`, {
           leadId: lead.id,
           sequence: targetSeq.name,
-          subject: scheduledMsg.subject,
-          hasFlawReport: Boolean(lead.flawReport)
+          subject: scheduledMsg.subject
         });
       }
     }
@@ -89,7 +224,7 @@ export class PitchCrafterAgent extends BaseAgent {
           this.db.updateLead(lead.id, {
             nextFollowUpAt: undefined
           });
-          this.log('info', `Completed full ${targetSeq.name} (${targetSeq.steps.length} steps) for ${lead.companyName}`);
+          this.log('info', `Completed full sequence for ${lead.companyName}`);
         }
       }
     }
@@ -101,53 +236,31 @@ export class PitchCrafterAgent extends BaseAgent {
   }
 
   /**
-   * Crafts tailored email using template variables and Jesora Tech case studies
+   * Crafts tailored email strictly matching the user's 3 designated templates
    */
   public async craftMessageForLead(
     lead: Lead,
     stepNumber: number,
     sequence: EmailSequence
   ): Promise<OutreachMessage | null> {
-    const step = sequence.steps.find(s => s.stepNumber === stepNumber);
-    if (!step) return null;
-
     const settings = this.db.getSettings();
-    const relevantCaseStudy = this.matchBestCaseStudy(lead);
+    const track = this.determinePitchTrack(lead, sequence);
+    const city = this.extractCity(lead);
+    const firstNameOrTeam = this.extractFirstNameOrTeam(lead);
 
-    // Apply template replacements
-    let subject = step.subjectTemplate
-      .replace(/{{companyName}}/g, lead.companyName)
-      .replace(/{{contactName}}/g, lead.contactName)
-      .replace(/{{industry}}/g, lead.industry);
+    let subject = this.getDefaultSubject(lead, track);
+    let body = this.buildFallbackTemplate(lead, track, city, firstNameOrTeam);
 
-    // Format flaw report details if present (including both visual design and technical flaws)
-    const flawSummary = lead.flawReport
-      ? `Visual Design Flaws: ${(lead.flawReport.designFlaws || []).slice(0, 2).join('; ') || 'dated visual hierarchy, low-contrast CTA'}; Tech Flaws: ${lead.flawReport.criticalFlaws.slice(0, 2).join('; ')} (Design Score: ${lead.flawReport.designScore || 45}/100, Performance: ${lead.flawReport.performanceScore}/100, Latency: ${lead.flawReport.loadLatencyMs}ms)`
-      : (lead.painPoints || 'modernizing visual UI/UX design & streamlining software workflows');
-
-    let body = step.bodyTemplate
-      .replace(/{{companyName}}/g, lead.companyName)
-      .replace(/{{contactName}}/g, lead.contactName)
-      .replace(/{{industry}}/g, lead.industry)
-      .replace(/{{calendarBookingUrl}}/g, settings.jesoraProfile.calendarBookingUrl)
-      .replace(/{{painPoints}}/g, flawSummary)
-      .replace(/{{techStack}}/g, lead.techStack || 'web platform');
-
-    // In step 1 or 2, dynamically highlight the matched case study if not already present
-    if (stepNumber === 1 && !body.includes(relevantCaseStudy.title)) {
-      body += `\n\nP.S. Given your focus in ${lead.industry}, you might find our recent case study interesting: ${relevantCaseStudy.title} (${relevantCaseStudy.url}) — ${relevantCaseStudy.highlight}`;
-    }
-
-    // Add optional AI enhancement if an AI key is supplied
-    if (settings.ai.provider !== 'builtin' && settings.ai.apiKey) {
+    // AI enhancement using exact template guidelines
+    if (settings.ai?.apiKey && settings.ai.provider !== 'builtin') {
       try {
-        const enhanced = await this.enhancePitchWithAI(subject, body, lead, stepNumber, sequence, settings);
-        if (enhanced) {
-          subject = enhanced.subject;
-          body = enhanced.body;
+        const aiResult = await this.enhancePitchWithAI(lead, track, city, firstNameOrTeam, settings);
+        if (aiResult?.subject && aiResult?.body) {
+          subject = aiResult.subject;
+          body = aiResult.body;
         }
       } catch (err: any) {
-        this.log('warn', `AI pitch enhancement fallback to template: ${err.message}`);
+        this.log('warn', `AI enhancement fallback to standard template: ${err.message}`);
       }
     }
 
@@ -167,79 +280,283 @@ export class PitchCrafterAgent extends BaseAgent {
     };
   }
 
-  private matchBestCaseStudy(lead: Lead) {
-    const text = `${lead.industry} ${lead.companyName} ${lead.painPoints || ''}`.toLowerCase();
+  private determinePitchTrack(lead: Lead, sequence: EmailSequence): PitchTrack {
+    const ind = (lead.industry || '').toLowerCase();
+    const pain = (lead.painPoints || '').toLowerCase();
+    const hasNoWebsite = !lead.website || lead.website.toLowerCase().includes('none');
 
-    if (text.includes('ai') || text.includes('saas') || text.includes('writing') || text.includes('text')) {
-      return {
-        title: 'WriteWell — AI Writing Humanizer SaaS',
-        url: 'https://www.writewell.space',
-        highlight: 'Engineered AI prose refinement engine with zero latency and high retention.'
-      };
+    // 1. ERP Track
+    if (ind.includes('erp') || pain.includes('erp') || ind.includes('enterprise') || ind.includes('mortgage') || ind.includes('manufacturing')) {
+      return 'erp';
     }
 
-    if (text.includes('automotive') || text.includes('bike') || text.includes('workshop') || text.includes('garage') || text.includes('car repair') || text.includes('auto repair') || text.includes('mechanic')) {
-      return {
-        title: 'MOTOFIX HUB — Service & Booking Platform',
-        url: 'https://motohubfix.vercel.app',
-        highlight: 'Live workshop queue tracking, customer repair estimates, and automated appointment scheduling.'
-      };
+    // 2. Web Development Track
+    if (hasNoWebsite || sequence.id === 'seq-jesora-fullstack' || ind.includes('cafe') || ind.includes('coffee') || ind.includes('restaurant') || ind.includes('retail') || ind.includes('software') || ind.includes('startup')) {
+      return 'web_development';
     }
 
-    if (text.includes('driving') || text.includes('salon') || text.includes('beauty') || text.includes('parlour') || text.includes('hair') || text.includes('spa') || text.includes('barber')) {
-      return {
-        title: 'Jesora 1-Click Client Booking & Scheduling Engine',
-        url: 'https://motohubfix.vercel.app',
-        highlight: 'Mobile-first 1-click booking calendar, automated appointment reminders, zero per-seat commissions.'
-      };
+    // 3. Automation Track (Driving schools, salons, garages, clinics, tuition centers)
+    return 'automation';
+  }
+
+  private extractCity(lead: Lead): string {
+    if (lead.address) {
+      const parts = lead.address.split(',').map(s => s.trim()).filter(Boolean);
+      if (parts.length >= 3) {
+        const candidate = parts[parts.length - 2].replace(/\d+/g, '').trim();
+        if (candidate.length > 2) return candidate;
+      }
+      if (parts.length >= 2) {
+        const candidate = parts[parts.length - 2].replace(/\d+/g, '').trim();
+        if (candidate.length > 2) return candidate;
+      }
+    }
+    if (lead.country) {
+      return lead.country.split(',')[0].replace(/\d+/g, '').trim();
+    }
+    return 'your area';
+  }
+
+  private extractFirstNameOrTeam(lead: Lead): string {
+    const raw = (lead.contactName || '').trim();
+    if (!raw || 
+        raw.toLowerCase().includes('team') || 
+        raw.toLowerCase().includes('executive') || 
+        raw.toLowerCase().includes('decision') ||
+        raw.toLowerCase().includes('director') ||
+        raw.toLowerCase().includes('founder') ||
+        raw.toLowerCase().includes('owner')) {
+      return `${lead.companyName} Team`;
+    }
+    const firstName = raw.split(' ')[0].trim();
+    return firstName.length > 1 ? firstName : `${lead.companyName} Team`;
+  }
+
+  private getDefaultSubject(lead: Lead, track: PitchTrack): string {
+    if (track === 'web_development') {
+      return `${lead.companyName} digital presence & website review`;
+    }
+    if (track === 'erp') {
+      return `Connected business operations for ${lead.companyName}`;
+    }
+    return `Streamlining operational workflows for ${lead.companyName}`;
+  }
+
+  private buildFallbackTemplate(
+    lead: Lead,
+    track: PitchTrack,
+    city: string,
+    firstNameOrTeam: string
+  ): string {
+    const hasNoWebsite = !lead.website || lead.website.toLowerCase().includes('none');
+
+    if (track === 'web_development') {
+      const p1 = hasNoWebsite
+        ? 'Absence of an official website for direct customer evaluation'
+        : 'Mobile responsiveness and slow page response times';
+      const imp1 = hasNoWebsite
+        ? 'Potential clients searching for services in your area cannot view your credentials, service options, or contact details directly online, often choosing competitors with visible websites.'
+        : 'Potential clients browsing on smartphones often experience formatting delays and navigation friction, leading many to drop off before contacting you.';
+
+      const p2 = 'No direct after-hours online appointment or inquiry booking';
+      const imp2 = 'Customers wishing to schedule consultations or service visits in the evening or weekends have no automated way to book, forcing all intake onto manual telephone calls.';
+
+      const p3 = 'Clear service positioning and customer trust cues';
+      const imp3 = 'First-time visitors need immediate confidence through clean service breakdowns and visible client reviews to take the next step without hesitation.';
+
+      const s1Title = 'Modern, High-Speed Responsive Website';
+      const s1Desc = `A clean, professional website engineered for instant loading on smartphones, tablets, and computers, ensuring ${lead.companyName} makes a strong first impression.`;
+
+      const s2Title = 'Automated 24/7 Client Booking & Inquiry Portal';
+      const s2Desc = 'An intuitive, mobile-friendly booking system that allows prospective clients to request appointments or inquiries directly at any time of day.';
+
+      const s3Title = 'Local Search & Google Visibility Optimization';
+      const s3Desc = `Structured service pages and Google local search optimization to help ${lead.companyName} attract organic search traffic across ${city}.`;
+
+      return WEB_DEV_TEMPLATE
+        .replace(/{{first_name_or_team}}/g, firstNameOrTeam)
+        .replace(/{{company_name}}/g, lead.companyName)
+        .replace(/{{industry}}/g, lead.industry)
+        .replace(/{{city}}/g, city)
+        .replace(/{{personalized_observation}}/g, `your strong local customer reputation and presence in ${city}`)
+        .replace(/{{website_problem_1}}/g, p1)
+        .replace(/{{website_problem_1_business_impact}}/g, imp1)
+        .replace(/{{website_problem_2}}/g, p2)
+        .replace(/{{website_problem_2_business_impact}}/g, imp2)
+        .replace(/{{website_problem_3}}/g, p3)
+        .replace(/{{website_problem_3_business_impact}}/g, imp3)
+        .replace(/{{website_solution_1_title}}/g, s1Title)
+        .replace(/{{website_solution_1_description_and_benefit}}/g, s1Desc)
+        .replace(/{{website_solution_2_title}}/g, s2Title)
+        .replace(/{{website_solution_2_description_and_benefit}}/g, s2Desc)
+        .replace(/{{website_solution_3_title}}/g, s3Title)
+        .replace(/{{website_solution_3_description_and_benefit}}/g, s3Desc);
     }
 
-    if (text.includes('education') || text.includes('school') || text.includes('edtech') || text.includes('campus') || text.includes('lms') || text.includes('tuition') || text.includes('tutor') || text.includes('language')) {
-      return {
-        title: 'Radiant Montessori School Web Campus & Student Portal',
-        url: 'https://rme.edu.np',
-        highlight: 'Full web portal and student notice/intake system serving 2,300+ students.'
-      };
+    if (track === 'erp') {
+      const p1 = 'Disconnected information across separate tools and spreadsheets';
+      const imp1 = 'Managing customer records, service orders, and financials in different places creates manual data-entry overhead and increases the risk of scheduling discrepancies.';
+
+      const p2 = 'Lack of unified operational visibility in real time';
+      const imp2 = 'Management must spend time compiling reports across disconnected spreadsheets to understand current pipeline status, pending jobs, and staff allocation.';
+
+      const p3 = 'Manual coordination between administrative staff and service delivery';
+      const imp3 = 'Internal communications require frequent back-and-forth phone calls or messages, slowing down response times to new client inquiries.';
+
+      const s1Desc = `A single, central platform that unites client intake, service tracking, and operational records specifically configured for ${lead.companyName}.`;
+      const s2Desc = 'Live operational dashboards that give your management team an instant overview of daily appointments, revenue, and active client statuses.';
+      const s3Desc = 'Automated workflow triggers that eliminate repetitive manual follow-ups and ensure consistent coordination across your team.';
+
+      return ERP_TEMPLATE
+        .replace(/{{first_name_or_team}}/g, firstNameOrTeam)
+        .replace(/{{company_name}}/g, lead.companyName)
+        .replace(/{{industry}}/g, lead.industry)
+        .replace(/{{city}}/g, city)
+        .replace(/{{personalized_observation}}/g, `your expanding operations and business standing in ${city}`)
+        .replace(/{{erp_problem_1}}/g, p1)
+        .replace(/{{erp_problem_1_business_impact}}/g, imp1)
+        .replace(/{{erp_problem_2}}/g, p2)
+        .replace(/{{erp_problem_2_business_impact}}/g, imp2)
+        .replace(/{{erp_problem_3}}/g, p3)
+        .replace(/{{erp_problem_3_business_impact}}/g, imp3)
+        .replace(/{{erp_solution_1_description_and_benefit}}/g, s1Desc)
+        .replace(/{{erp_solution_2_description_and_benefit}}/g, s2Desc)
+        .replace(/{{erp_solution_3_description_and_benefit}}/g, s3Desc);
     }
 
-    if (text.includes('mortgage') || text.includes('finance') || text.includes('broker') || text.includes('loan')) {
-      return {
-        title: 'Jesora Secure Client Intake & Financial Document Portal',
-        url: 'https://jesoratech.com',
-        highlight: 'Automated client qualification, encrypted document checklist upload, and real-time application pipeline.'
-      };
+    // Automation Track
+    const p1 = 'Manual Appointment Scheduling and Inquiries';
+    const imp1 = 'Handling customer bookings and reschedules via phone calls or manual messages consumes valuable staff time and risks missed inquiries during peak business hours.';
+
+    const p2 = 'Disconnected Client Records and Status Tracking';
+    const imp2 = 'Relying on separate spreadsheets or paper logs makes it difficult to track client history, lesson schedules, or service queues in real time.';
+
+    const p3 = 'Manual Reminders and Follow-Up Communications';
+    const imp3 = 'Without automated confirmation messages, appointment no-shows and last-minute cancellations can disrupt daily scheduling and revenue.';
+
+    const s1Title = 'Automated Self-Service Scheduling';
+    const s1Desc = 'A streamlined digital booking system that lets clients view availability and schedule appointments online 24/7, freeing your team from routine phone coordination.';
+
+    const s2Title = 'Centralized Customer & Workflow Dashboard';
+    const s2Desc = 'A unified operational dashboard where your staff can view upcoming schedules, client history, and real-time status updates in one organized place.';
+
+    const s3Title = 'Automated Notifications & Reminders';
+    const s3Desc = 'Instant confirmation emails and SMS appointment reminders sent automatically, drastically reducing no-shows and keeping clients informed.';
+
+    return AUTOMATION_TEMPLATE
+      .replace(/{{first_name_or_team}}/g, firstNameOrTeam)
+      .replace(/{{company_name}}/g, lead.companyName)
+      .replace(/{{industry}}/g, lead.industry)
+      .replace(/{{city}}/g, city)
+      .replace(/{{personalized_observation}}/g, `your active customer service presence in ${city}`)
+      .replace(/{{current_process_1}}/g, p1)
+      .replace(/{{process_1_challenge_and_impact}}/g, imp1)
+      .replace(/{{current_process_2}}/g, p2)
+      .replace(/{{process_2_challenge_and_impact}}/g, imp2)
+      .replace(/{{current_process_3}}/g, p3)
+      .replace(/{{process_3_challenge_and_impact}}/g, imp3)
+      .replace(/{{automation_solution_1}}/g, s1Title)
+      .replace(/{{solution_1_description_and_benefit}}/g, s1Desc)
+      .replace(/{{automation_solution_2}}/g, s2Title)
+      .replace(/{{solution_2_description_and_benefit}}/g, s2Desc)
+      .replace(/{{automation_solution_3}}/g, s3Title)
+      .replace(/{{solution_3_description_and_benefit}}/g, s3Desc);
+  }
+
+  private async enhancePitchWithAI(
+    lead: Lead,
+    track: PitchTrack,
+    city: string,
+    firstNameOrTeam: string,
+    settings: any
+  ): Promise<{ subject: string; body: string } | null> {
+    const selectedTemplate =
+      track === 'web_development'
+        ? WEB_DEV_TEMPLATE
+        : track === 'erp'
+        ? ERP_TEMPLATE
+        : AUTOMATION_TEMPLATE;
+
+    const hasNoWebsite = !lead.website || lead.website.toLowerCase().includes('none');
+
+    const prompt = `You are Rajan Thakulla, Lead Engineer at JESORA TECH (jesoratech.com).
+Your task is to write a highly tailored, professional B2B outreach email to a prospective client.
+
+PROSPECT DETAILS:
+• Company Name: ${lead.companyName}
+• Recipient: ${firstNameOrTeam}
+• Industry: ${lead.industry}
+• City: ${city}
+• Website Status: ${hasNoWebsite ? 'No official website detected' : lead.website}
+• Context: ${lead.painPoints || 'Digital presence & workflow modernization'}
+
+PITCH TRACK: ${track.toUpperCase()}
+
+CRITICAL RULES:
+1. You MUST follow the EXACT template below word-for-word, replacing ONLY the placeholders enclosed in {{...}}.
+2. DO NOT mention any third-party portfolio websites, client names, or URLs (e.g. NEVER mention MotoFix, motohubfix.vercel.app, writewell.space, or any external client links).
+3. DO NOT use technical jargon (NO TTFB, NO milliseconds latency numbers, NO HSTS/CSP, NO headless Next.js monolithic talk). Explain all issues and solutions in tech-literate, clear business English that any business owner understands.
+4. Keep the exact section headers ("Where your website could improve", "How JESORA TECH can help", etc.) and numbered items ("01 —", "02 —", "03 —").
+5. The sign-off must be exactly:
+Best regards,
+
+Rajan Thakulla
+Lead Engineer | JESORA TECH
+[techjesora@gmail.com](mailto:techjesora@gmail.com)
+jesoratech.com
+
+TEMPLATE TO USE:
+${selectedTemplate}
+
+Return JSON with exact keys:
+{
+  "subject": "Clean professional subject line for ${lead.companyName}",
+  "body": "Exact formatted email body following the template"
+}`;
+
+    const candidateModels = ['gemini-3.1-flash-lite', 'gemini-3.5-flash', 'gemini-3.8-flash'].filter((v, i, a) => a.indexOf(v) === i);
+
+    for (const currentModel of candidateModels) {
+      try {
+        const currentUrl = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${settings.ai.apiKey}`;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 20000);
+
+        const res = await fetch(currentUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { responseMimeType: 'application/json' }
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeout);
+
+        if (!res.ok) {
+          if (res.status === 429) {
+            this.log('warn', `Gemini model ${currentModel} rate limited (429). Attempting fallback model...`);
+            continue;
+          }
+          continue;
+        }
+
+        const data = await res.json() as any;
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) continue;
+
+        const cleaned = text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+        const parsed = JSON.parse(cleaned);
+        if (parsed.subject && parsed.body && parsed.body.includes('JESORA TECH')) {
+          this.log('success', `✨ AI tailored ${track} pitch for ${lead.companyName} using exact format.`);
+          return { subject: parsed.subject, body: parsed.body };
+        }
+      } catch (innerErr: any) {
+        this.log('warn', `Model ${currentModel} error: ${innerErr.message}`);
+      }
     }
 
-    if (text.includes('cafe') || text.includes('coffee') || text.includes('bakery') || text.includes('restaurant')) {
-      return {
-        title: 'Jesora High-Speed Visual Menu & Mobile Ordering Engine',
-        url: 'https://razzletikapur.vercel.app',
-        highlight: 'Sub-second mobile loading, digital visual menus, table ordering, and Google review automation.'
-      };
-    }
-
-    if (text.includes('retail') || text.includes('e-commerce') || text.includes('store') || text.includes('gadgets') || text.includes('electronics')) {
-      return {
-        title: 'Razzle Showroom — Retail & Gadgets',
-        url: 'https://razzletikapur.vercel.app',
-        highlight: 'High-speed digital catalog, cart management, and inventory checkout.'
-      };
-    }
-
-    if (text.includes('non-profit') || text.includes('community') || text.includes('donation') || text.includes('recycle')) {
-      return {
-        title: 'We-Cycle Ames Platform (Iowa, USA)',
-        url: 'https://www.wecycleames.org',
-        highlight: 'Community bicycle recycling logistics, donation workflows, and volunteer portal.'
-      };
-    }
-
-    // Default to WriteWell & Custom ERP
-    return {
-      title: 'WriteWell & Custom Enterprise Cloud ERPs',
-      url: 'https://jesoratech.com',
-      highlight: 'Engineered high-performance web platforms and automated ERPs with 100% source code ownership.'
-    };
+    return null;
   }
 
   private calculateFollowUpTime(sequence: EmailSequence, currentStepNumber: number): string | undefined {
@@ -248,208 +565,5 @@ export class PitchCrafterAgent extends BaseAgent {
 
     const delayMs = nextStep.delayDays * 24 * 60 * 60 * 1000;
     return new Date(Date.now() + delayMs).toISOString();
-  }
-
-  private async enhancePitchWithAI(
-    subject: string,
-    body: string,
-    lead: Lead,
-    stepNumber: number,
-    sequence: EmailSequence,
-    settings: any
-  ): Promise<{ subject: string; body: string } | null> {
-    if (!settings.ai?.apiKey) return null;
-
-    try {
-      const model = settings.ai.modelName || 'gemini-3.8-flash';
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${settings.ai.apiKey}`;
-      const relevantCaseStudy = this.matchBestCaseStudy(lead);
-
-      const flawSection = lead.flawReport
-        ? `CONCRETE TECHNICAL & VISUAL UI/UX DESIGN AUDIT FINDINGS:
-• Technical Health: ${lead.flawReport.performanceScore}/100 | Visual Design Score: ${lead.flawReport.designScore || 42}/100
-• Load Latency / TTFB: ${lead.flawReport.loadLatencyMs}ms
-• Specific Visual & UI/UX Design Flaws: ${(lead.flawReport.designFlaws && lead.flawReport.designFlaws.length > 0) ? lead.flawReport.designFlaws.join(' | ') : 'Dated typographic hierarchy, low-contrast primary action buttons, lack of modern responsive grid spacing'}
-• Critical Technical & Performance Bottlenecks: ${lead.flawReport.criticalFlaws.join(' | ')}
-• Conversion Bottlenecks: ${lead.flawReport.conversionBottlenecks.join(' | ')}
-• Recommended Engineering & Design Modernization Fixes: ${lead.flawReport.recommendedFixes.join(' | ')}`
-        : `• Observed Bottlenecks: ${lead.painPoints || 'sub-optimal mobile responsiveness, dated visual presentation, latency, and conversion drop-off'}`;
-
-      const isEnterprise = sequence.id === 'seq-enterprise-automation';
-
-      let stepStrategy = '';
-      const hasNoWebsite = !lead.website || lead.website.toLowerCase().includes('none');
-
-      if (hasNoWebsite && stepNumber === 1) {
-        stepStrategy = `STEP 1 ANGLE: FIRST OFFICIAL WEBSITE & 1-CLICK MOBILE BOOKING ENGINE LAUNCH
-- Context: ${lead.companyName} currently has ZERO official website or digital booking portal in ${lead.country}.
-- Hook: Acknowledge that while ${lead.companyName} is well-regarded locally, customers searching on Google Maps and mobile have no direct website to view your full services, pricing, or book an appointment online.
-- Pain Point: Right now, 100% of organic search traffic and after-hours bookings are lost to local competitors who have online booking portals.
-- The Solution: We engineer custom, high-speed Next.js websites with built-in 1-click appointment booking, mobile-first visual polish, and automated review collection in 2 weeks with 100% source code ownership (zero monthly software fees).
-- Social Proof: Mention ${relevantCaseStudy.title} (${relevantCaseStudy.url}): "${relevantCaseStudy.highlight}".
-- Call To Action: Low-friction ask: "Would you be against taking a 2-minute peek at a prototype website concept we sketched out for ${lead.companyName}?"`;
-      } else if (isEnterprise) {
-        if (stepNumber === 1) {
-          stepStrategy = `STEP 1 ANGLE: OPERATIONAL OVERHEAD & BESPOKE INTERNAL WORKFLOW REDESIGN
-- Hook: Acknowledge that in ${lead.industry}, manual phone calls, spreadsheet chaos, and rigid off-the-shelf software create friction for both customers and staff.
-- Industry Tailoring:
-  * If Beauty Parlour / Hair Salon / Barber: Emphasize editorial luxury visual aesthetics, frictionless 1-click mobile appointment booking, and automated review capture.
-  * If Driving School: Emphasize student lesson scheduling, instructor availability calendar, and automated booking notifications.
-  * If Garage / Auto Repair: Emphasize live vehicle service queue tracking, customer repair quote approvals, and automated job status notifications (like MotoFix Hub).
-  * If Tuition Center / Language School / Academy: Emphasize student registration portal, course timetable intake, and automated parent/student communication.
-  * If Cafe / Coffee Shop: Emphasize instant mobile visual menu, high-conversion visual design, local SEO, and automated 5-star Google review capture.
-  * If Mortgage Center: Emphasize high-trust modern UI, secure document checklist upload, and automated client qualification funnel.
-- Flaw Insight: Highlight both the visual clutter / UX friction and technical bottlenecks found on their portal:
-${flawSection}
-- Introduce: Custom lightweight Cloud ERP / Booking Engine and real-time database designed 100% for ${lead.companyName}.
-- Highlights: 100% full source code ownership, zero recurring per-seat monthly license fees.
-- Social Proof: Mention ${relevantCaseStudy.title} (${relevantCaseStudy.url}): "${relevantCaseStudy.highlight}".
-- Call To Action: Low-friction ask for a 10-minute discovery call to explore eliminating 10+ hours/week of manual admin overhead.`;
-        } else if (stepNumber === 2) {
-          stepStrategy = `STEP 2 ANGLE: CASE STUDY TEARDOWN & CONCRETE TIME-SAVINGS
-- Hook: Re-engage with operational metrics from real engineering deployments.
-- Teardown: Explain how MotoFix replaced whiteboard queues with real-time bay tracking, instant booking, and automated invoice triggers.
-- Delivery Model: Production tools built in focused 2 to 4-week sprints with 100% code handover.
-- Call To Action: Propose a quick 10-minute chat this Thursday/Friday or share calendar booking link (${settings.jesoraProfile?.calendarBookingUrl || 'https://calendly.com/techjesora/30min'}).`;
-        } else if (stepNumber === 3) {
-          stepStrategy = `STEP 3 ANGLE: THE HIDDEN SAAS SUBSCRIPTION TAX VS OWNED ASSET
-- Hook: Contrast paying $300-$1,500/month forever in SaaS subscription fees vs owning proprietary software.
-- The Solution: Custom Next.js & PostgreSQL internal tool hosted on their own cloud — zero per-user seat fees forever, 100% data privacy.
-- Call To Action: Offer to prepare a high-level feasibility outline showing what a custom portal for ${lead.companyName} would look like.`;
-        } else if (stepNumber === 4) {
-          stepStrategy = `STEP 4 ANGLE: FREE DATABASE SCHEMA & WORKFLOW BLUEPRINT (ZERO OBLIGATION)
-- Offer: Complimentary Database Schema (ERD) & API Integration Blueprint specifically drafted for ${lead.companyName}.
-- Value: Completely free to keep with zero strings attached, even if built internally.
-- Call To Action: Direct calendar link to claim the blueprint in a 15-minute scoping chat.`;
-        } else {
-          stepStrategy = `STEP 5 ANGLE: PROFESSIONAL FILE ARCHIVE & FOUNDER ROLODEX
-- Tone: High-status, respectful, zero desperation.
-- Message: Closing the file on workflow automation for now so we don't clutter their inbox.
-- Leave: Direct email (techjesora@gmail.com | jesoratech.com) for whenever custom software or an urgent sprint becomes a priority.`;
-        }
-      } else {
-        // Modern Web & Engineering Sequence (seq-jesora-fullstack)
-        if (stepNumber === 1) {
-          stepStrategy = `STEP 1 ANGLE: BESPOKE CONCEPT REDESIGN HOOK & DUAL DESIGN/PERFORMANCE AUDIT BREAKDOWN
-- Hook: Our design & engineering team already audited their live web presence at ${lead.website || lead.companyName} and built a rapid concept redesign prototype specifically modernizing their visual design and eliminating performance bottlenecks.
-- Specific Flaws to Call Out: Call out both their visual design flaws (e.g. ${(lead.flawReport?.designFlaws || []).slice(0, 2).join('; ') || 'dated visual hierarchy and buried CTA'}) and speed/technical lag:
-${flawSection}
-  Contrast this against our sleek custom Next.js/React architecture, bespoke Tailwind typography, high-contrast CTA, and sub-second page loads.
-- Jesora Tech Pillars: 100% full source code ownership from Day 1, agile 2-week delivery sprints, 40-60% cost advantage.
-- Social Proof: ${relevantCaseStudy.title} (${relevantCaseStudy.url}): "${relevantCaseStudy.highlight}".
-- Call To Action: Low-resistance question: "Would you be against taking a 2-minute peek at the concept redesign prototype we sketched out for you?"`;
-        } else if (stepNumber === 2) {
-          stepStrategy = `STEP 2 ANGLE: UNDER-THE-HOOD ENGINEERING PROOF & PRODUCTION DEMOS
-- Hook: Quick follow-up on the concept prototype sketched for ${lead.companyName}.
-- Teardown: Highlight execution standards from WriteWell (writewell.space, zero latency AI SaaS) and MotoFix (motohubfix.vercel.app, live booking queue).
-- Positioning: Turnkey production software with zero vendor lock-in.
-- Call To Action: 10-minute chat or direct calendar link (${settings.jesoraProfile?.calendarBookingUrl || 'https://calendly.com/techjesora/30min'}).`;
-        } else if (stepNumber === 3) {
-          stepStrategy = `STEP 3 ANGLE: 3-POINT CONVERSION BOTTLENECK TEARDOWN & MOBILE FRICTION
-- Hook: Ran deeper technical benchmarks on their live website during prototype tuning.
-- 3 Friction Points:
-  1. Latency & Core Web Vitals (slow TTFB and layout shift causing 30-40% visitor bounce).
-  2. Mobile inquiry pathway (too many manual form steps instead of instant friction-free booking).
-  3. Legacy stack drag (monolith vs. decoupled Next.js & Tailwind).
-- Call To Action: Offer to record a personalized 2-minute Loom video walking through the interactive differences.`;
-        } else if (stepNumber === 4) {
-          stepStrategy = `STEP 4 ANGLE: FREE TECHNICAL ARCHITECTURE & DATABASE BLUEPRINT (ZERO OBLIGATIONS)
-- Value Proposition: Completely complimentary Technical Architecture & Feasibility Blueprint for ${lead.companyName}.
-- Contents: Recommended modern stack (Next.js, Node.js/Python, PostgreSQL), database ERD schema, API roadmap, 2-week sprint breakdown.
-- Freedom: Free to keep forever even if they build internally or hire elsewhere.
-- Call To Action: 15-minute calendar link to request the blueprint.`;
-        } else if (stepNumber === 5) {
-          stepStrategy = `STEP 5 ANGLE: STAGING PREVIEW & TRANSPARENT 2-WEEK SPRINT ECONOMICS
-- Hook: Showing how Jesora Tech eliminates common software delivery headaches.
-- Mechanics: Focused 2-week agile sprints, fixed transparent pricing (40-60% below US/Western European agencies), weekly Friday production deployments, daily async Loom updates, direct senior developer access with zero junior handoffs.
-- Call To Action: Calendar link for an introductory review of the concept preview or roadmap.`;
-        } else {
-          stepStrategy = `STEP 6 ANGLE: PROFESSIONAL GRACEFUL BREAK-UP & FOUNDER ROLODEX ARCHIVE
-- Tone: High-status, gracious, respectful of their priorities.
-- Message: Safely archiving the concept preview to keep their inbox clean.
-- Rolodex: Leaving direct email and contact for future urgent dev sprints (techjesora@gmail.com | jesoratech.com).`;
-        }
-      }
-
-      const prompt = `You are an elite B2B engineering growth copywriter for JESORA TECH (jesoratech.com), a premier custom software and web development partner founded by Rajan Thakulla, based in Tinkune, Kathmandu, Nepal.
-
-YOUR GOAL:
-Draft a personalized, high-converting B2B cold outreach email that grabs the prospect's attention immediately and feels completely bespoke (NEVER generic, robotic, or templated).
-
-TARGET PROSPECT:
-• Company: ${lead.companyName} (${lead.industry})
-• Contact: ${lead.contactName} (${lead.contactTitle || 'Founder / Decision Maker'})
-• Website: ${lead.website}
-• Physical Address: ${lead.address || 'Headquarters'}
-• Tech Stack: ${lead.techStack || 'Web infrastructure'}
-
-SEQUENCE CONTEXT:
-• Sequence Name: ${sequence.name}
-• Sequence Step: Step ${stepNumber} of ${sequence.steps.length}
-• Sequence Goal: ${sequence.steps.find(s => s.stepNumber === stepNumber)?.purpose || 'Consultative outreach'}
-
-${stepStrategy}
-
-CRITICAL COPYWRITING DIRECTIVES:
-1. Speak peer-to-peer as a senior software engineer and technical founder, not a pushy marketer or generic agency.
-2. Format in short, punchy, scannable paragraphs (2-3 sentences max) optimized for mobile screens.
-3. No generic agency fluff like "hope this email finds you well" or "we are a leading IT firm".
-4. Base subject line draft: "${subject}". Feel free to sharpen it into an irresistible, personalized subject line.
-5. Base body context:
-${body}
-
-Return JSON with exact keys:
-{
-  "subject": "Compelling, bespoke subject line",
-  "body": "Complete, polished, persuasive email body signed by Rajan Thakulla & The JESORA TECH Team"
-}`;
-
-      const candidateModels = ['gemini-3.1-flash-lite', 'gemini-3.5-flash', 'gemini-3.8-flash'].filter((v, i, a) => a.indexOf(v) === i);
-
-      for (const currentModel of candidateModels) {
-        try {
-          const currentUrl = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${settings.ai.apiKey}`;
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 25000);
-
-          const res = await fetch(currentUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { responseMimeType: 'application/json' }
-            }),
-            signal: controller.signal
-          });
-          clearTimeout(timeout);
-
-          if (!res.ok) {
-            const errText = await res.text().catch(() => '');
-            if (res.status === 429) {
-              this.log('warn', `Gemini model ${currentModel} rate limited (429). Attempting fallback model...`);
-              continue;
-            }
-            this.log('warn', `Gemini API (${currentModel}) returned status ${res.status}: ${errText.slice(0, 100)}`);
-            continue;
-          }
-
-          const data = await res.json() as any;
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (!text) continue;
-
-          const cleaned = text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
-          const parsed = JSON.parse(cleaned);
-          if (parsed.subject && parsed.body) {
-            this.log('success', `✨ Gemini AI (${currentModel}) crafted bespoke Step ${stepNumber} copy for ${lead.companyName}`);
-            return { subject: parsed.subject, body: parsed.body };
-          }
-        } catch (innerErr: any) {
-          this.log('warn', `Model ${currentModel} error: ${innerErr.message}`);
-        }
-      }
-    } catch (err: any) {
-      this.log('warn', `AI pitch enhancement fallback to template: ${err.message}`);
-    }
-    return null;
   }
 }

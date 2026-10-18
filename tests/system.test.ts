@@ -173,28 +173,34 @@ describe('JESORA TECH 24x7 Outreach Multi-Agent Test Suite (8 Agents)', () => {
     assert.ok(auditedLead?.flawReport, 'Lead should now have flawReport attached');
   });
 
-  it('5. Pitch Crafter ingests flaw report and crafts bespoke pitch with 100% source ownership across sequence steps', async () => {
+  it('5. Pitch Crafter generates consultative pitch matching exact user template with no technical jargon or external links', async () => {
     const crafter = new PitchCrafterAgent(db);
-    const auditedLead = db.getAllLeads('audited')[0] || db.getAllLeads()[0];
+    const auditedLead = db.getAllLeads('audited')[0] || db.getAllLeads()[0] || {
+      id: 'lead-test-audited',
+      companyName: 'Apex Dental Care',
+      website: 'https://apexdentalcare.com',
+      industry: 'Dental clinic',
+      contactName: 'Dr. John Smith',
+      email: 'contact@apexdentalcare.com',
+      country: 'United States',
+      address: '123 Main St, Boston, United States',
+      score: 80,
+      status: 'audited',
+      createdAt: new Date().toISOString()
+    };
     const seq = db.getSequenceById('seq-jesora-fullstack')!;
 
-    // Step 1: Concept redesign hook
+    // Step 1: Exact format verification
     const step1Msg = await crafter.craftMessageForLead(auditedLead, 1, seq);
     assert.ok(step1Msg, 'Step 1 Message should be generated');
     assert.ok(step1Msg.subject.includes(auditedLead.companyName), 'Subject should contain company name');
-    assert.ok(step1Msg.body.includes(auditedLead.contactName), 'Body should contain contact name');
-    assert.ok(step1Msg.body.includes('100% Full Source Code Ownership'), 'Must state 100% source code ownership');
-
-    // Step 3: Technical bottleneck breakdown
-    const step3Msg = await crafter.craftMessageForLead(auditedLead, 3, seq);
-    assert.ok(step3Msg, 'Step 3 Message should be generated');
-    assert.ok(step3Msg.subject.includes(auditedLead.companyName), 'Step 3 subject should contain company name');
-    assert.ok(step3Msg.body.includes('Latency & Core Web Vitals'), 'Step 3 must break down technical latency bottlenecks');
-
-    // Step 6: Graceful break-up
-    const step6Msg = await crafter.craftMessageForLead(auditedLead, 6, seq);
-    assert.ok(step6Msg, 'Step 6 Message should be generated');
-    assert.ok(step6Msg.subject.includes('archive'), 'Step 6 subject should ask permission to archive prototype');
+    assert.ok(step1Msg.body.includes('Where your website could improve'), 'Must contain exact section header');
+    assert.ok(step1Msg.body.includes('How JESORA TECH can help'), 'Must contain exact section header');
+    assert.ok(step1Msg.body.includes('01 —'), 'Must contain numbered bullet headers');
+    assert.ok(step1Msg.body.includes('[techjesora@gmail.com](mailto:techjesora@gmail.com)'), 'Must contain exact signature link');
+    assert.ok(step1Msg.body.includes('jesoratech.com'), 'Must contain jesoratech.com');
+    assert.strictEqual(step1Msg.body.includes('motohubfix.vercel.app'), false, 'Must NOT contain external case study links');
+    assert.strictEqual(step1Msg.body.includes('TTFB'), false, 'Must NOT contain technical jargon like TTFB');
   });
 
   it('6. Dispatcher Agent enforces pacing and daily limits', async () => {
