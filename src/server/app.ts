@@ -3,6 +3,7 @@ import cors from 'cors';
 import path from 'node:path';
 import { Orchestrator } from '../engine/Orchestrator.js';
 import { AgentRole, Lead, Campaign, SystemSettings } from '../types/index.js';
+import { JesoraAssistantService } from '../services/JesoraAssistantService.js';
 import crypto from 'node:crypto';
 
 export function createServer(orchestrator: Orchestrator) {
@@ -342,6 +343,31 @@ export function createServer(orchestrator: Orchestrator) {
       '🚀 <b>JESORA TECH 24x7 Automation Reachout Sentinel:</b> Test connection successful! System is active.'
     );
     res.json({ success, message: success ? 'Telegram message sent!' : 'Telegram delivery failed. Check Bot Token & Chat ID.' });
+  });
+
+  // --- Jesora AI Executive Voice Assistant ---
+  const assistantService = new JesoraAssistantService(db);
+
+  app.post('/api/assistant/chat', async (req: Request, res: Response) => {
+    try {
+      const { message, history } = req.body;
+      if (!message || typeof message !== 'string') {
+        return res.status(400).json({ success: false, error: 'message string is required.' });
+      }
+      const result = await assistantService.answerUser({ message, history });
+      res.json({ success: true, ...result });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.get('/api/assistant/fleet-summary', async (req: Request, res: Response) => {
+    try {
+      const summary = await assistantService.getFleetSummary();
+      res.json({ success: true, summary });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
   });
 
   // Fallback route for SPA dashboard

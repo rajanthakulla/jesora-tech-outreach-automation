@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initDrawer();
   initActions();
   loadAllData();
+  initJesoraVoiceAssistant();
 
   // Periodic fallback refresh every 15s
   setInterval(() => {
@@ -1464,9 +1465,11 @@ function applySimPreset(preset) {
 
 function initDrawer() {
   const drawer = document.getElementById('lead-drawer');
-  drawer.addEventListener('click', (e) => {
-    if (e.target === drawer) closeLeadDrawer();
-  });
+  if (drawer) {
+    drawer.addEventListener('click', (e) => {
+      if (e.target === drawer) closeLeadDrawer();
+    });
+  }
 }
 
 // --- Interactive Actions ---
@@ -1750,3 +1753,543 @@ function splitCsvLine(line) {
   result.push(current);
   return result;
 }
+
+// ===================================================================
+// GEMINI LIVE AI VOICE ASSISTANT — "HELLO JESORA" ENGINE
+// ===================================================================
+
+function initJesoraVoiceAssistant() {
+  const assState = {
+    isOpen: false,
+    isListening: false,
+    isSpeaking: false,
+    isThinking: false,
+    speechEnabled: true,
+    wakeWordActive: true,
+    recognition: null,
+    inactivityTimer: null,
+    history: [],
+    selectedVoice: null
+  };
+
+  const modal = document.getElementById('jesora-assistant-modal');
+  const backdrop = document.getElementById('jesora-assistant-backdrop');
+  const closeBtn = document.getElementById('assistant-close-btn');
+  const openBtn = document.getElementById('btn-open-assistant');
+  const floatingBubble = document.getElementById('floating-assistant-bubble');
+  const orb = document.getElementById('gemini-live-orb');
+  const statePill = document.getElementById('assistant-state-pill');
+  const stateText = document.getElementById('assistant-state-text');
+  const statusDot = document.getElementById('assistant-status-dot');
+  const liveTranscript = document.getElementById('assistant-live-transcript');
+  const markdownBody = document.getElementById('assistant-markdown-body');
+  const msgTime = document.getElementById('assistant-msg-time');
+  const voiceToggle = document.getElementById('assistant-voice-toggle');
+  const stopSpeechBtn = document.getElementById('assistant-stop-speech-btn');
+  const micBtn = document.getElementById('assistant-mic-btn');
+  const textInput = document.getElementById('assistant-text-input');
+  const sendBtn = document.getElementById('assistant-send-btn');
+  const quickPromptsContainer = document.getElementById('assistant-quick-prompts');
+
+  // Load natural voices for TTS
+  function loadVoices() {
+    if (!('speechSynthesis' in window)) return;
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices || voices.length === 0) return;
+
+    // Prioritize natural, fluent English voices
+    const preferredNames = [
+      'Google US English', 'Samantha', 'Daniel', 'Karen', 'Moira',
+      'Microsoft Zira', 'Microsoft David', 'Alex', 'Victoria'
+    ];
+
+    let found = null;
+    for (const name of preferredNames) {
+      found = voices.find(v => v.name.includes(name) && v.lang.startsWith('en'));
+      if (found) break;
+    }
+    if (!found) {
+      found = voices.find(v => v.lang.startsWith('en-US')) || voices.find(v => v.lang.startsWith('en'));
+    }
+    assState.selectedVoice = found || voices[0];
+  }
+
+  if ('speechSynthesis' in window) {
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  }
+
+  // Web Audio Synthesizer Chime (Pleasant harmonic wake sound)
+  function playWakeChime() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12); // A5
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.3);
+    } catch (e) {}
+  }
+
+  // Set Orb & UI State
+  function setAssistantState(mode) {
+    if (!orb) return;
+    orb.className = 'gemini-orb-container state-' + mode;
+
+    if (statePill) {
+      statePill.className = 'assistant-state-pill ' + mode;
+    }
+
+    if (statusDot) {
+      statusDot.className = 'assistant-status-dot ' + (mode === 'standby' ? 'active' : mode);
+    }
+
+    if (stateText) {
+      if (mode === 'listening') {
+        stateText.innerHTML = 'Listening... &bull; Speak clearly';
+      } else if (mode === 'thinking') {
+        stateText.innerHTML = 'Jesora is thinking...';
+      } else if (mode === 'speaking') {
+        stateText.innerHTML = 'Jesora is speaking aloud...';
+      } else {
+        stateText.innerHTML = 'Ready &bull; Say "Hello Jesora"';
+      }
+    }
+
+    if (micBtn) {
+      micBtn.classList.toggle('active', mode === 'listening');
+    }
+  }
+
+  // Open Assistant Modal
+  function openAssistant(autoGreet = false) {
+    assState.isOpen = true;
+    if (modal) {
+      modal.classList.add('active');
+      modal.setAttribute('aria-hidden', 'false');
+    }
+    if (floatingBubble) {
+      floatingBubble.style.opacity = '0';
+      floatingBubble.style.pointerEvents = 'none';
+    }
+
+    setAssistantState('listening');
+
+    if (autoGreet) {
+      speakJesora("Hello Rajan! I'm here. How can I assist you with the fleet today?", false);
+    } else {
+      startSpeechRecognition();
+    }
+  }
+
+  // Close Assistant Modal
+  function closeAssistant() {
+    assState.isOpen = false;
+    stopSpeech();
+    if (modal) {
+      modal.classList.remove('active');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    if (floatingBubble) {
+      floatingBubble.style.opacity = '1';
+      floatingBubble.style.pointerEvents = 'auto';
+    }
+    setAssistantState('standby');
+    if (liveTranscript) {
+      liveTranscript.innerHTML = '<span class="transcript-placeholder">"Hello Jesora, what\'s the update?"</span>';
+    }
+  }
+
+  // Stop ongoing speech
+  function stopSpeech() {
+    assState.isSpeaking = false;
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    if (assState.isOpen && !assState.isThinking) {
+      setAssistantState('listening');
+    }
+  }
+
+  // Speak aloud via Text-to-Speech
+  function speakJesora(speechText, returnToListening = true) {
+    if (!assState.speechEnabled || !('speechSynthesis' in window)) {
+      if (returnToListening) setAssistantState('listening');
+      return;
+    }
+
+    stopSpeech();
+    assState.isSpeaking = true;
+    setAssistantState('speaking');
+
+    const clean = speechText
+      .replace(/#+\s+/g, '')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+      .replace(/`{1,3}.*?`{1,3}/g, '')
+      .replace(/-{3,}/g, '')
+      .replace(/^\s*[-•]\s+/gm, '')
+      .trim();
+
+    const utterance = new SpeechSynthesisUtterance(clean);
+    if (assState.selectedVoice) {
+      utterance.voice = assState.selectedVoice;
+    }
+    utterance.rate = 1.05;
+    utterance.pitch = 1.0;
+
+    utterance.onend = () => {
+      assState.isSpeaking = false;
+      if (assState.isOpen && returnToListening) {
+        setAssistantState('listening');
+        startInactivityTimer();
+        startSpeechRecognition();
+      }
+    };
+
+    utterance.onerror = () => {
+      assState.isSpeaking = false;
+      if (assState.isOpen && returnToListening) {
+        setAssistantState('listening');
+      }
+    };
+
+    window.speechSynthesis.speak(utterance);
+  }
+
+  // Inactivity Timer: Auto-standby after 25s of silence
+  function startInactivityTimer() {
+    clearTimeout(assState.inactivityTimer);
+    assState.inactivityTimer = setTimeout(() => {
+      if (assState.isOpen && !assState.isSpeaking && !assState.isThinking) {
+        setAssistantState('standby');
+      }
+    }, 25000);
+  }
+
+  // Ask Jesora Query (Voice or Text)
+  async function askJesora(query) {
+    if (!query || assState.isThinking) return;
+
+    clearTimeout(assState.inactivityTimer);
+    assState.isThinking = true;
+    setAssistantState('thinking');
+
+    if (liveTranscript) {
+      liveTranscript.innerHTML = `<span style="color:#38BDF8;">You:</span> "${escapeHtml(query)}"`;
+    }
+
+    assState.history.push({ role: 'user', content: query });
+
+    try {
+      const res = await fetch('/api/assistant/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: query,
+          history: assState.history.slice(-6)
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success && data.reply) {
+        assState.isThinking = false;
+        assState.history.push({ role: 'assistant', content: data.reply });
+
+        // Render Markdown reply
+        if (markdownBody) {
+          markdownBody.innerHTML = renderMarkdown(data.reply);
+        }
+        if (msgTime) {
+          msgTime.textContent = 'Live • ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Render dynamic follow-up chips
+        if (quickPromptsContainer && Array.isArray(data.suggestedFollowUps) && data.suggestedFollowUps.length > 0) {
+          quickPromptsContainer.innerHTML = data.suggestedFollowUps.map(prompt => `
+            <button class="prompt-chip" data-prompt="${escapeHtml(prompt)}">
+              <span>💬</span> "${escapeHtml(prompt)}"
+            </button>
+          `).join('');
+          wireQuickChips();
+        }
+
+        // Speak response out loud!
+        speakJesora(data.speechText || data.reply, true);
+      } else {
+        throw new Error(data.error || 'Failed to process query');
+      }
+    } catch (err) {
+      assState.isThinking = false;
+      const errorMsg = `I encountered a temporary communication glitch with the neural engine: ${err.message}. All outreach systems remain active.`;
+      if (markdownBody) {
+        markdownBody.innerHTML = `<p style="color:#F43F5E;">${escapeHtml(errorMsg)}</p>`;
+      }
+      speakJesora(errorMsg, true);
+    }
+  }
+
+  // Render Markdown to HTML helper
+  function renderMarkdown(md) {
+    if (!md) return '';
+    return md
+      .replace(/### (.*?)\n/g, '<h3>$1</h3>')
+      .replace(/## (.*?)\n/g, '<h3>$1</h3>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" style="color:#38BDF8; text-decoration:underline;">$1</a>')
+      .replace(/^\s*[-•]\s+(.*)$/gm, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/\n/g, '<br>');
+  }
+
+  function escapeHtml(str) {
+    return (str || '').replace(/[&<>"']/g, m => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[m]);
+  }
+
+  // Wire Dynamic Prompt Chips
+  function wireQuickChips() {
+    if (!quickPromptsContainer) return;
+    const chips = quickPromptsContainer.querySelectorAll('.prompt-chip');
+    chips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        const prompt = chip.dataset.prompt;
+        if (prompt) {
+          if (!assState.isOpen) openAssistant();
+          askJesora(prompt);
+        }
+      });
+    });
+  }
+
+  // Continuous Speech Recognition & "Hello Jesora" Wake Word Loop
+  function startSpeechRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      console.warn('[Jesora Voice Assistant] Web Speech API not supported in this browser.');
+      return;
+    }
+
+    if (assState.recognition) {
+      try { assState.recognition.start(); } catch (e) {}
+      return;
+    }
+
+    try {
+      const rec = new SpeechRecognition();
+      rec.continuous = true;
+      rec.interimResults = true;
+      rec.lang = 'en-US';
+
+      rec.onstart = () => {
+        assState.isListening = true;
+      };
+
+      rec.onresult = (event) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const text = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += text;
+          } else {
+            interimTranscript += text;
+          }
+        }
+
+        const heard = (finalTranscript || interimTranscript).trim().toLowerCase();
+
+        // 1. Wake Word Detection ("Hello Jesora", "Hey Jesora", "Jesora")
+        const wakePhrases = ['hello jesora', 'hey jesora', 'hi jesora', 'ok jesora', 'jesora'];
+        let matchedWake = false;
+        let matchedPhrase = '';
+
+        for (const wp of wakePhrases) {
+          if (heard.includes(wp)) {
+            matchedWake = true;
+            matchedPhrase = wp;
+            break;
+          }
+        }
+
+        if (matchedWake) {
+          playWakeChime();
+
+          // Extract question after wake word if spoken together
+          const wakeIdx = heard.indexOf(matchedPhrase);
+          const remainder = heard.slice(wakeIdx + matchedPhrase.length).replace(/^[,\s.?!]+/, '').trim();
+
+          if (!assState.isOpen) {
+            openAssistant();
+          }
+
+          if (remainder.length > 2) {
+            askJesora(remainder);
+          } else if (!assState.isSpeaking && !assState.isThinking) {
+            speakJesora("Hello Rajan! I am right here. How can I assist you with the fleet?", true);
+          }
+          return;
+        }
+
+        // 2. Active in-modal speech transcription
+        if (assState.isOpen && !assState.isSpeaking && !assState.isThinking) {
+          if (interimTranscript && liveTranscript) {
+            liveTranscript.innerHTML = `<span style="color:#38BDF8;">Listening:</span> "${escapeHtml(interimTranscript)}"`;
+          }
+
+          if (finalTranscript && finalTranscript.trim().length > 1) {
+            const cleanFinal = finalTranscript.trim();
+            // Check for verbal dismissal commands
+            const lower = cleanFinal.toLowerCase();
+            if (lower === 'stop' || lower.includes('stop speaking') || lower.includes('quiet') || lower.includes('be quiet')) {
+              stopSpeech();
+              return;
+            }
+            if (lower.includes('goodbye') || lower.includes('dismiss') || lower.includes('go to sleep') || lower.includes('close')) {
+              speakJesora("Goodbye Rajan! Standing by whenever you say Hello Jesora.", false);
+              setTimeout(() => closeAssistant(), 1800);
+              return;
+            }
+
+            askJesora(cleanFinal);
+          }
+        }
+      };
+
+      rec.onerror = (e) => {
+        // Ignore normal no-speech or abort errors
+        if (e.error !== 'no-speech' && e.error !== 'aborted') {
+          console.warn('[Jesora Voice Engine Notice]:', e.error);
+        }
+      };
+
+      rec.onend = () => {
+        assState.isListening = false;
+        // Auto-restart wake word listening loop in background so "Hello Jesora" always works!
+        if (assState.wakeWordActive) {
+          setTimeout(() => {
+            try { rec.start(); } catch (e) {}
+          }, 300);
+        }
+      };
+
+      assState.recognition = rec;
+      rec.start();
+    } catch (err) {
+      console.warn('[Jesora Voice Assistant Init Notice]:', err);
+    }
+  }
+
+  // --- Wire UI Listeners ---
+
+  // Top header button
+  if (openBtn) {
+    openBtn.addEventListener('click', () => {
+      if (assState.isOpen) closeAssistant();
+      else openAssistant(true);
+    });
+  }
+
+  // Floating bubble click
+  if (floatingBubble) {
+    floatingBubble.addEventListener('click', () => {
+      openAssistant(true);
+    });
+  }
+
+  // Close button & backdrop click
+  if (closeBtn) closeBtn.addEventListener('click', closeAssistant);
+  if (backdrop) backdrop.addEventListener('click', closeAssistant);
+
+  // Orb click: Toggle listening or interrupt
+  if (orb) {
+    orb.addEventListener('click', () => {
+      if (assState.isSpeaking) {
+        stopSpeech();
+      } else if (assState.isThinking) {
+        // wait
+      } else {
+        setAssistantState('listening');
+        startSpeechRecognition();
+        showToast('Jesora is listening...', 'info');
+      }
+    });
+  }
+
+  // Stop speech button
+  if (stopSpeechBtn) {
+    stopSpeechBtn.addEventListener('click', () => {
+      stopSpeech();
+      showToast('Speech stopped', 'info');
+    });
+  }
+
+  // Voice output toggle (Mute/Unmute TTS)
+  if (voiceToggle) {
+    voiceToggle.addEventListener('click', () => {
+      assState.speechEnabled = !assState.speechEnabled;
+      voiceToggle.classList.toggle('active', assState.speechEnabled);
+      showToast(assState.speechEnabled ? 'Voice output enabled (TTS active)' : 'Voice output muted (Text only)', 'info');
+      if (!assState.speechEnabled) stopSpeech();
+    });
+  }
+
+  // Mic push-to-talk button
+  if (micBtn) {
+    micBtn.addEventListener('click', () => {
+      setAssistantState('listening');
+      startSpeechRecognition();
+      showToast('Microphone active — speak to Jesora', 'info');
+    });
+  }
+
+  // Text input submit
+  if (sendBtn && textInput) {
+    sendBtn.addEventListener('click', () => {
+      const q = textInput.value.trim();
+      if (q) {
+        textInput.value = '';
+        askJesora(q);
+      }
+    });
+
+    textInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const q = textInput.value.trim();
+        if (q) {
+          textInput.value = '';
+          askJesora(q);
+        }
+      }
+    });
+  }
+
+  // Wire initial quick chips
+  wireQuickChips();
+
+  // Initialize continuous wake word listening
+  startSpeechRecognition();
+
+  // Export to window for debugging if needed
+  window.JesoraVoiceAssistant = {
+    open: () => openAssistant(true),
+    close: closeAssistant,
+    ask: askJesora,
+    speak: speakJesora
+  };
+}
+

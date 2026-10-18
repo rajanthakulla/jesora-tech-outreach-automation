@@ -142,6 +142,11 @@
         </div>
 
         <div class="top-actions">
+          <button class="btn btn-jesora-ai" id="btn-open-assistant" title="Say 'Hello Jesora' or click to activate voice assistant">
+            <span class="jesora-ai-orb-micro"></span>
+            <span class="jesora-ai-label">Hello Jesora</span>
+            <span class="jesora-ai-badge">Voice AI</span>
+          </button>
           <button class="btn btn-secondary btn-sm" id="btn-scout-lead-now" title="Scout fresh companies for active campaigns">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             <span>Scout Leads</span>
@@ -791,6 +796,123 @@ Apex Dental,Dr. Arthur,arthur@apexdental.co.uk,https://apexdental.co.uk,42 Harle
           <button class="btn btn-primary btn-sm" id="btn-submit-sim">Process Inbound Message</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       GEMINI LIVE AI VOICE ASSISTANT — "HELLO JESORA"
+       =================================================================== -->
+  <div class="jesora-assistant-overlay" id="jesora-assistant-modal" aria-hidden="true">
+    <div class="jesora-assistant-backdrop" id="jesora-assistant-backdrop"></div>
+    
+    <div class="jesora-assistant-card" role="dialog" aria-label="Jesora AI Executive Voice Assistant">
+      <!-- Header -->
+      <div class="assistant-card-header">
+        <div class="assistant-identity">
+          <div class="assistant-status-dot active" id="assistant-status-dot"></div>
+          <div>
+            <div class="assistant-title-row">
+              <h3 class="assistant-title">Jesora AI</h3>
+              <span class="assistant-live-badge">Live Executive Voice</span>
+            </div>
+            <span class="assistant-subtitle" id="assistant-mode-caption">Say "Hello Jesora" or tap orb to speak</span>
+          </div>
+        </div>
+        
+        <div class="assistant-header-controls">
+          <button class="assistant-icon-btn" id="assistant-voice-toggle" title="Voice Output (TTS Enabled)">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+          </button>
+          <button class="assistant-icon-btn" id="assistant-stop-speech-btn" title="Stop Audio (Interrupt)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12"></rect></svg>
+          </button>
+          <button class="assistant-icon-btn" id="assistant-close-btn" title="Minimize to Floating Orb">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Center Stage: Gemini Live Pulsating Orb -->
+      <div class="assistant-orb-stage">
+        <div class="gemini-orb-container state-standby" id="gemini-live-orb" role="button" tabindex="0" title="Click to speak / mute">
+          <div class="orb-halo-outer"></div>
+          <div class="orb-halo-mid"></div>
+          <div class="orb-halo-inner"></div>
+          <div class="orb-core">
+            <div class="orb-fluid-mesh"></div>
+            <div class="orb-glow-reflect"></div>
+            <div class="orb-sparkle"></div>
+          </div>
+          <div class="orb-soundwave-bars" id="orb-soundwave-bars">
+            <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+        
+        <!-- Live Status Pill -->
+        <div class="assistant-state-pill" id="assistant-state-pill">
+          <span class="state-dot"></span>
+          <span class="state-text" id="assistant-state-text">Ready &bull; Say "Hello Jesora"</span>
+        </div>
+        
+        <!-- Live Speech Transcription Ticker -->
+        <div class="assistant-transcription" id="assistant-live-transcript">
+          <span class="transcript-placeholder">"Hello Jesora, what's the update?"</span>
+        </div>
+      </div>
+
+      <!-- Response / Executive Briefing Area -->
+      <div class="assistant-conversation-viewport" id="assistant-conversation-viewport">
+        <div class="assistant-response-card" id="assistant-response-card">
+          <div class="assistant-message-meta">
+            <span class="meta-badge">⚡ Executive Intelligence Briefing</span>
+            <span class="meta-timestamp" id="assistant-msg-time">Ready</span>
+          </div>
+          <div class="assistant-markdown-body" id="assistant-markdown-body">
+            <p>Hello Rajan! I am <strong>Jesora</strong>, your 24x7 AI operations director. Say <em>"Hello Jesora"</em> or tap the orb above to receive your live fleet update, check scheduled outbox pitches, or consult on strategy.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Action Chips -->
+      <div class="assistant-quick-prompts" id="assistant-quick-prompts">
+        <button class="prompt-chip" data-prompt="What's the update?">
+          <span>⚡</span> "What's the update?"
+        </button>
+        <button class="prompt-chip" data-prompt="Who is scheduled in our outbox?">
+          <span>📤</span> "Who is queued next?"
+        </button>
+        <button class="prompt-chip" data-prompt="Explain our website development pitch">
+          <span>🎯</span> "Explain our pitch"
+        </button>
+        <button class="prompt-chip" data-prompt="How are driving school and salon leads performing?">
+          <span>🚗</span> "Driving schools & salons"
+        </button>
+      </div>
+
+      <!-- Input Bar (Voice Mic + Text Fallback) -->
+      <div class="assistant-input-tray">
+        <button class="mic-action-btn" id="assistant-mic-btn" title="Toggle Listening">
+          <svg class="mic-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+        </button>
+        
+        <input type="text" class="assistant-text-input" id="assistant-text-input" placeholder="Say 'Hello Jesora' or type here..." autocomplete="off">
+        
+        <button class="btn btn-primary btn-sm assistant-send-btn" id="assistant-send-btn" title="Send Query">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLOATING MINI TRIGGER BUBBLE -->
+  <div class="floating-assistant-bubble" id="floating-assistant-bubble" role="button" tabindex="0" title="Wake Jesora (Say 'Hello Jesora' or click)">
+    <div class="bubble-orb">
+      <div class="bubble-ripple"></div>
+      <span class="bubble-icon">✨</span>
+    </div>
+    <div class="bubble-tooltip">
+      <span class="bubble-status-dot active"></span>
+      <span id="bubble-tooltip-text">Say "Hello Jesora"</span>
     </div>
   </div>
 

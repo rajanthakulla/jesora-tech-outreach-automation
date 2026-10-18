@@ -3,6 +3,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import crypto from 'node:crypto';
 import { NeonDatabase } from '../src/db/neonService.js';
+import { JesoraAssistantService } from '../src/services/JesoraAssistantService.js';
 import { Lead, Campaign, InboundReply, ReplySentiment } from '../src/types/index.js';
 
 const app = express();
@@ -598,6 +599,31 @@ app.post('/api/agents/:role/run', async (req: Request, res: Response) => {
 app.post('/api/agents/:role/:action', async (req: Request, res: Response) => {
   const { role, action } = req.params;
   res.json({ success: true, message: `Agent ${role} ${action} command registered.` });
+});
+
+// --- Jesora AI Executive Voice Assistant ---
+const assistantService = new JesoraAssistantService(neonDb);
+
+app.post('/api/assistant/chat', async (req: Request, res: Response) => {
+  try {
+    const { message, history } = req.body;
+    if (!message || typeof message !== 'string') {
+      return res.status(400).json({ success: false, error: 'message string is required.' });
+    }
+    const result = await assistantService.answerUser({ message, history });
+    res.json({ success: true, ...result });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/assistant/fleet-summary', async (req: Request, res: Response) => {
+  try {
+    const summary = await assistantService.getFleetSummary();
+    res.json({ success: true, summary });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 export default app;
