@@ -285,18 +285,25 @@ export class PitchCrafterAgent extends BaseAgent {
     const pain = (lead.painPoints || '').toLowerCase();
     const hasNoWebsite = !lead.website || lead.website.toLowerCase().includes('none');
 
-    // 1. ERP Track
-    if (ind.includes('erp') || pain.includes('erp') || ind.includes('enterprise') || ind.includes('mortgage') || ind.includes('manufacturing')) {
-      return 'erp';
-    }
-
-    // 2. Web Development Track
-    if (hasNoWebsite || sequence.id === 'seq-jesora-fullstack' || ind.includes('cafe') || ind.includes('coffee') || ind.includes('restaurant') || ind.includes('retail') || ind.includes('software') || ind.includes('startup')) {
+    // 1. Web Development Track (TOP PRIORITY):
+    // Default and prioritize across all target verticals (driving schools, tuition centers, language schools,
+    // garages, salons, cafes, clinics, schools, mortgage centers, startups, SMBs, local services)
+    if (hasNoWebsite || sequence.id === 'seq-jesora-fullstack') {
       return 'web_development';
     }
 
-    // 3. Automation Track (Driving schools, salons, garages, clinics, tuition centers)
-    return 'automation';
+    // 2. Dedicated ERP Track: ONLY for explicit ERP/SAP enterprise software modernization on enterprise sequence
+    if (sequence.id === 'seq-enterprise-automation' && (/\berp\b/i.test(ind) || /\benterprise resource planning\b/i.test(pain) || /\bsap\b/i.test(ind))) {
+      return 'erp';
+    }
+
+    // 3. Pure Backend Automation Track: ONLY when explicitly requested for internal API/backend sync with no website need
+    if (sequence.id === 'seq-enterprise-automation' && (pain.includes('zapier') || pain.includes('webhook automation') || pain.includes('crm database sync'))) {
+      return 'automation';
+    }
+
+    // Fallback: Prioritize Web Development
+    return 'web_development';
   }
 
   private extractCity(lead: Lead): string {
