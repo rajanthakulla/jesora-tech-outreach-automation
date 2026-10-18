@@ -4,3 +4,5 @@ data/*.sqlite*
 !data/.gitkeep
 .env
 .DS_Store
+.vercel
+.env*

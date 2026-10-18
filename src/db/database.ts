@@ -15,6 +15,8 @@ import {
   AgentRole
 } from '../types/index.js';
 
+import { NeonDatabase } from './neonService.js';
+
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -24,6 +26,7 @@ const DB_PATH = path.join(DATA_DIR, 'outreach.sqlite');
 
 export class AppDatabase {
   public db: Database.Database;
+  public neonDb?: NeonDatabase;
 
   constructor(customPath?: string) {
     this.db = new Database(customPath || DB_PATH);
@@ -32,6 +35,14 @@ export class AppDatabase {
     this.initTables();
     this.seedDefaultsIfEmpty();
     this.syncDefaultSequences();
+
+    if (process.env.DATABASE_URL || process.env.POSTGRES_URL) {
+      try {
+        this.neonDb = new NeonDatabase();
+      } catch (err: any) {
+        console.warn('[Neon Sync] Warning initializing Neon replication:', err.message);
+      }
+    }
   }
 
   private initTables(): void {
@@ -235,7 +246,7 @@ export class AppDatabase {
       ai: {
         provider: (process.env.AI_PROVIDER as any) || (geminiKey ? 'gemini' : 'builtin'),
         apiKey: geminiKey,
-        modelName: process.env.AI_MODEL || 'gemini-3.8-flash'
+        modelName: process.env.AI_MODEL || 'gemini-3.5-flash'
       },
       telegram: {
         botToken: tgToken,
@@ -420,6 +431,8 @@ export class AppDatabase {
       lead.createdAt,
       lead.updatedAt
     );
+
+    this.neonDb?.insertLead(lead).catch(() => {});
   }
 
   public updateLead(id: string, updates: Partial<Lead>): void {
@@ -462,6 +475,8 @@ export class AppDatabase {
       merged.updatedAt,
       id
     );
+
+    this.neonDb?.updateLead(id, updates).catch(() => {});
   }
 
   public deleteLead(id: string): void {
@@ -655,6 +670,8 @@ export class AppDatabase {
       msg.errorMessage || null,
       msg.createdAt
     );
+
+    this.neonDb?.insertMessage(msg).catch(() => {});
   }
 
   public updateMessageStatus(id: string, status: OutreachMessage['status'], extra?: { sentAt?: string; error?: string }): void {
@@ -666,6 +683,8 @@ export class AppDatabase {
       WHERE id = ?
     `);
     stmt.run(status, extra?.sentAt || null, extra?.error || null, id);
+
+    this.neonDb?.updateMessageStatus(id, status, extra).catch(() => {});
   }
 
   public getMessagesForLead(leadId: string): OutreachMessage[] {
@@ -870,6 +889,8 @@ export class AppDatabase {
       telemetry.currentTask,
       telemetry.lastErrorMessage || null
     );
+
+    this.neonDb?.updateAgentTelemetry(telemetry).catch(() => {});
   }
 
   public getAllAgentTelemetry(): AgentTelemetry[] {
@@ -909,6 +930,8 @@ export class AppDatabase {
         SELECT id FROM agent_logs ORDER BY timestamp DESC LIMIT 1000
       )
     `).run();
+
+    this.neonDb?.insertAgentLog(log).catch(() => {});
   }
 
   public getRecentLogs(limit: number = 100): AgentLog[] {

@@ -360,35 +360,48 @@ Return JSON with exact keys:
   "body": "Complete, polished, persuasive email body signed by Rajan Thakulla & The JESORA TECH Team"
 }`;
 
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 25000);
+      const candidateModels = [model, 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'].filter((v, i, a) => a.indexOf(v) === i);
 
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { responseMimeType: 'application/json' }
-        }),
-        signal: controller.signal
-      });
-      clearTimeout(timeout);
+      for (const currentModel of candidateModels) {
+        try {
+          const currentUrl = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${settings.ai.apiKey}`;
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 25000);
 
-      if (!res.ok) {
-        const errText = await res.text().catch(() => '');
-        this.log('warn', `Gemini API returned status ${res.status}: ${errText.slice(0, 100)}`);
-        return null;
-      }
+          const res = await fetch(currentUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { responseMimeType: 'application/json' }
+            }),
+            signal: controller.signal
+          });
+          clearTimeout(timeout);
 
-      const data = await res.json() as any;
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) return null;
+          if (!res.ok) {
+            const errText = await res.text().catch(() => '');
+            if (res.status === 429) {
+              this.log('warn', `Gemini model ${currentModel} rate limited (429). Attempting fallback model...`);
+              continue;
+            }
+            this.log('warn', `Gemini API (${currentModel}) returned status ${res.status}: ${errText.slice(0, 100)}`);
+            continue;
+          }
 
-      const cleaned = text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
-      const parsed = JSON.parse(cleaned);
-      if (parsed.subject && parsed.body) {
-        this.log('success', `✨ Gemini AI crafted bespoke Step ${stepNumber} copy for ${lead.companyName}`);
-        return { subject: parsed.subject, body: parsed.body };
+          const data = await res.json() as any;
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (!text) continue;
+
+          const cleaned = text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+          const parsed = JSON.parse(cleaned);
+          if (parsed.subject && parsed.body) {
+            this.log('success', `✨ Gemini AI (${currentModel}) crafted bespoke Step ${stepNumber} copy for ${lead.companyName}`);
+            return { subject: parsed.subject, body: parsed.body };
+          }
+        } catch (innerErr: any) {
+          this.log('warn', `Model ${currentModel} error: ${innerErr.message}`);
+        }
       }
     } catch (err: any) {
       this.log('warn', `AI pitch enhancement fallback to template: ${err.message}`);

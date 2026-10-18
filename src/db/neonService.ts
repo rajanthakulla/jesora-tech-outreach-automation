@@ -71,7 +71,7 @@ export class NeonDatabase {
       ai: {
         provider: 'gemini',
         apiKey: process.env.GEMINI_API_KEY || '',
-        modelName: process.env.GEMINI_MODEL || 'gemini-1.5-flash'
+        modelName: process.env.AI_MODEL || process.env.GEMINI_MODEL || 'gemini-3.5-flash'
       },
       telegram: {
         botToken: process.env.TELEGRAM_BOT_TOKEN || '',
@@ -382,6 +382,17 @@ export class NeonDatabase {
     );
   }
 
+  public async updateMessageStatus(id: string, status: OutreachMessage['status'], extra?: { sentAt?: string; error?: string }): Promise<void> {
+    await this.pool.query(
+      `UPDATE messages SET
+         status = $1,
+         sent_at = COALESCE($2, sent_at),
+         error_message = COALESCE($3, error_message)
+       WHERE id = $4`,
+      [status, extra?.sentAt || null, extra?.error || null, id]
+    );
+  }
+
   // --- Replies & Meetings ---
   public async getAllReplies(): Promise<InboundReply[]> {
     const res = await this.pool.query('SELECT * FROM replies ORDER BY received_at DESC');
@@ -459,6 +470,40 @@ export class NeonDatabase {
       currentTask: r.current_task || 'Idle',
       lastErrorMessage: r.last_error_message || undefined
     }));
+  }
+
+  public async upsertAgentTelemetry(telemetry: AgentTelemetry): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO agent_telemetry (
+        agent_id, name, role, description, status, last_run_at, next_run_at,
+        total_runs, total_actions, current_task, last_error_message
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      ON CONFLICT (agent_id) DO UPDATE SET
+        status = EXCLUDED.status,
+        last_run_at = EXCLUDED.last_run_at,
+        next_run_at = EXCLUDED.next_run_at,
+        total_runs = EXCLUDED.total_runs,
+        total_actions = EXCLUDED.total_actions,
+        current_task = EXCLUDED.current_task,
+        last_error_message = EXCLUDED.last_error_message`,
+      [
+        telemetry.agentId,
+        telemetry.name,
+        telemetry.role,
+        telemetry.description,
+        telemetry.status,
+        telemetry.lastRunAt || null,
+        telemetry.nextRunAt || null,
+        telemetry.totalRuns,
+        telemetry.totalActions,
+        telemetry.currentTask,
+        telemetry.lastErrorMessage || null
+      ]
+    );
+  }
+
+  public async updateAgentTelemetry(telemetry: AgentTelemetry): Promise<void> {
+    return this.upsertAgentTelemetry(telemetry);
   }
 
   public async getRecentLogs(limit: number = 100): Promise<AgentLog[]> {
