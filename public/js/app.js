@@ -1126,14 +1126,20 @@ async function openLeadDrawer(leadId) {
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; border-top: 1px solid var(--border-hairline); padding-top: 12px;">
           <div>
-            <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">WEBSITE</div>
-            <a href="${escapeHtml(lead.website)}" target="_blank" style="color: var(--accent-indigo-light); font-size: 12px; text-decoration: none;">
-              ${escapeHtml(lead.website)} ↗
-            </a>
-            ${lead.websiteVerified !== undefined ? `
-              <div style="margin-top: 3px; font-size: 10px; font-weight: 700; color: ${lead.websiteVerified ? '#34D399' : '#F87171'};">
-                ${lead.websiteVerified ? '✓ Active Live Website' : '✕ No Active Website (Discarded)'}
-              </div>` : ''}
+            <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">OFFICIAL WEBSITE</div>
+            ${lead.website && lead.website.startsWith('http') ? `
+              <a href="${escapeHtml(lead.website)}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-indigo-light); font-size: 12px; text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
+                ${escapeHtml(lead.website)} ↗
+              </a>
+              <div style="margin-top: 3px; font-size: 10px; font-weight: 700; color: #34D399;">
+                ✓ Verified Active Live Website
+              </div>` : `
+              <span style="color: #F59E0B; font-size: 12px; font-weight: 600;">
+                📱 No Standalone Website (Social / Local Listing Only)
+              </span>
+              <div style="margin-top: 3px; font-size: 10px; font-weight: 700; color: #F59E0B;">
+                ★ High-Priority Custom Web Build Candidate
+              </div>`}
           </div>
           <div>
             <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">VERIFIED PHYSICAL / HQ ADDRESS</div>

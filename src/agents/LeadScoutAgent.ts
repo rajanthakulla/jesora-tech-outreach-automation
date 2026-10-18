@@ -1,6 +1,7 @@
 import { BaseAgent } from './BaseAgent.js';
 import { AppDatabase } from '../db/database.js';
 import { Lead, Campaign } from '../types/index.js';
+import { WebPresenceResolverService } from '../services/WebPresenceResolverService.js';
 import crypto from 'node:crypto';
 
 export interface ProspectSeed {
@@ -18,6 +19,8 @@ export interface ProspectSeed {
 }
 
 export class LeadScoutAgent extends BaseAgent {
+  private resolver: WebPresenceResolverService;
+
   constructor(db: AppDatabase) {
     super(
       'lead_scout',
@@ -26,6 +29,7 @@ export class LeadScoutAgent extends BaseAgent {
       'Hunts commercial prospects and enforces 100% verified business details, valid emails, and physical addresses, discarding any flawed records immediately.',
       db
     );
+    this.resolver = new WebPresenceResolverService();
   }
 
   protected async executeCycle(): Promise<{ actionsTaken: number; message: string }> {
@@ -302,25 +306,40 @@ export class LeadScoutAgent extends BaseAgent {
       
       const rawListingEmail = p.email || p.contact?.email || p.datasource?.raw?.['contact:email'] || p.datasource?.raw?.email || null;
       const rawSocialUrl = p.datasource?.raw?.['contact:facebook'] || p.datasource?.raw?.['contact:instagram'] || null;
-      const rawWebsite = p.website ? p.website.trim() : null;
+      const rawWebsite = p.website || p.contact?.website || p.datasource?.raw?.['contact:website'] || p.datasource?.raw?.website || p.datasource?.raw?.url || p.datasource?.raw?.['brand:website'] || null;
 
       let website = '';
       let scrapedEmail = rawListingEmail;
       let hasOfficialWebsite = false;
 
-      if (!rawWebsite) {
-        // Business has NO official website (User priority: "maximum not have a website")
-        hasOfficialWebsite = false;
-        website = rawSocialUrl || 'None (No Official Website)';
-        if (!scrapedEmail && rawSocialUrl) {
-          scrapedEmail = await this.scrapeEmailFromWebsite(rawSocialUrl);
-        }
-      } else {
-        // Business has website listed
+      if (rawWebsite) {
+        website = rawWebsite.trim();
         hasOfficialWebsite = true;
-        website = rawWebsite;
         if (!scrapedEmail) {
           scrapedEmail = await this.scrapeEmailFromWebsite(rawWebsite);
+        }
+      } else {
+        // Resolve web presence via multi-engine resolver to ensure we don't miss an official website
+        const resolution = await this.resolver.resolveWebPresence({
+          companyName,
+          city: address,
+          country: location,
+          email: rawListingEmail || undefined,
+          industry: selectedKeyword
+        });
+
+        if (resolution.hasOfficialWebsite) {
+          website = resolution.verifiedUrl;
+          hasOfficialWebsite = true;
+          if (!scrapedEmail) {
+            scrapedEmail = await this.scrapeEmailFromWebsite(resolution.verifiedUrl);
+          }
+        } else {
+          website = rawSocialUrl || 'None (Social / Directory Only)';
+          hasOfficialWebsite = false;
+          if (!scrapedEmail && rawSocialUrl) {
+            scrapedEmail = await this.scrapeEmailFromWebsite(rawSocialUrl);
+          }
         }
       }
 
@@ -344,7 +363,7 @@ export class LeadScoutAgent extends BaseAgent {
         score: hasOfficialWebsite ? Math.floor(Math.random() * 6 + 88) : Math.floor(Math.random() * 4 + 96)
       });
 
-      this.log('success', `[Geoapify] Discovered live lead: ${companyName} (${address}) [Website: ${hasOfficialWebsite ? 'Yes' : 'NO - High Priority'}] — Email: ${scrapedEmail}`);
+      this.log('success', `[Geoapify] Discovered live lead: ${companyName} (${address}) [Website: ${hasOfficialWebsite ? website : 'None (Social / Directory Only)'}] — Email: ${scrapedEmail}`);
 
       if (discovered.length >= targetCount) break;
     }
@@ -412,12 +431,31 @@ export class LeadScoutAgent extends BaseAgent {
         const companyName = place.displayName?.text || 'Business';
         const rawWebsite = place.websiteUri;
         const address = place.formattedAddress;
-        const hasOfficialWebsite = Boolean(rawWebsite);
-        const website = rawWebsite || 'None (No Official Website)';
-
+        
+        let website = '';
+        let hasOfficialWebsite = false;
         let scrapedEmail: string | null = null;
+
         if (rawWebsite) {
+          website = rawWebsite.trim();
+          hasOfficialWebsite = true;
           scrapedEmail = await this.scrapeEmailFromWebsite(rawWebsite);
+        } else {
+          const resolution = await this.resolver.resolveWebPresence({
+            companyName,
+            city: address,
+            country: location,
+            industry: selectedKeyword
+          });
+
+          if (resolution.hasOfficialWebsite) {
+            website = resolution.verifiedUrl;
+            hasOfficialWebsite = true;
+            scrapedEmail = await this.scrapeEmailFromWebsite(resolution.verifiedUrl);
+          } else {
+            website = 'None (Social / Directory Only)';
+            hasOfficialWebsite = false;
+          }
         }
 
         if (!scrapedEmail) {

@@ -50,6 +50,51 @@ Lead Engineer | JESORA TECH
 [techjesora@gmail.com](mailto:techjesora@gmail.com)
 jesoratech.com`;
 
+const ZERO_WEBSITE_DEV_TEMPLATE = `Hi {{first_name_or_team}},
+
+I came across {{company_name}} while researching {{industry}} businesses in {{city}}, and {{personalized_observation}} caught my attention.
+
+Today, a business website is more than an online presence. It's often the first place potential customers go to evaluate a company, explore its services, and decide whether to get in touch.
+
+Based on my research into {{company_name}}, I noticed three potential opportunities to strengthen your digital presence:
+
+Where an official website would make an immediate difference
+
+01 — {{website_problem_1}}
+{{website_problem_1_business_impact}}
+
+02 — {{website_problem_2}}
+{{website_problem_2_business_impact}}
+
+03 — {{website_problem_3}}
+{{website_problem_3_business_impact}}
+
+How JESORA TECH can help
+
+At JESORA TECH, we design and develop modern, high-performing websites tailored to each business's goals, audience, and brand identity.
+
+01 — {{website_solution_1_title}}
+{{website_solution_1_description_and_benefit}}
+
+02 — {{website_solution_2_title}}
+{{website_solution_2_description_and_benefit}}
+
+03 — {{website_solution_3_title}}
+{{website_solution_3_description_and_benefit}}
+
+Our goal isn't simply to build a visually appealing website. It's to create a digital experience that communicates your value clearly, builds customer confidence, and makes it easier for potential customers to take the next step.
+
+We'd start by understanding your business objectives and service offerings, then design a high-converting website tailored to your brand and budget.
+
+Would you be open to a brief 10-minute conversation next week? I'd be happy to share a few website concepts and ideas specifically for {{company_name}}.
+
+Best regards,
+
+Rajan Thakulla
+Lead Engineer | JESORA TECH
+[techjesora@gmail.com](mailto:techjesora@gmail.com)
+jesoratech.com`;
+
 const AUTOMATION_TEMPLATE = `Hi {{first_name_or_team}},
 
 I came across {{company_name}} while researching {{industry}} businesses in {{city}}, and {{personalized_observation}} caught my attention.
@@ -358,46 +403,81 @@ export class PitchCrafterAgent extends BaseAgent {
     const hasNoWebsite = !lead.website || lead.website.toLowerCase().includes('none');
 
     if (track === 'web_development') {
-      const p1 = hasNoWebsite
-        ? 'Absence of an official website for direct customer evaluation'
-        : 'Mobile responsiveness and slow page response times';
-      const imp1 = hasNoWebsite
-        ? 'Potential clients searching for services in your area cannot view your credentials, service options, or contact details directly online, often choosing competitors with visible websites.'
-        : 'Potential clients browsing on smartphones often experience formatting delays and navigation friction, leading many to drop off before contacting you.';
+      if (hasNoWebsite) {
+        const p1 = 'Absence of an official website for direct customer evaluation';
+        const imp1 = 'Potential clients searching for services in your area cannot view your credentials, service options, or contact details directly online, often choosing competitors with visible websites.';
 
-      const p2 = 'No direct after-hours online appointment or inquiry booking';
-      const imp2 = 'Customers wishing to schedule consultations or service visits in the evening or weekends have no automated way to book, forcing all intake onto manual telephone calls.';
+        const p2 = 'Reliance on manual phone calls for all inquiries';
+        const imp2 = 'Without a dedicated website and online booking portal, potential customers browsing outside business hours have no way to request services or book consultations.';
 
-      const p3 = 'Clear service positioning and customer trust cues';
-      const imp3 = 'First-time visitors need immediate confidence through clean service breakdowns and visible client reviews to take the next step without hesitation.';
+        const p3 = 'Untapped local search and Google presence';
+        const imp3 = `Without an official domain and local search optimization, ${lead.companyName} is missing high-intent customers searching for ${lead.industry} services in ${city}.`;
 
-      const s1Title = 'Modern, High-Speed Responsive Website';
-      const s1Desc = `A clean, professional website engineered for instant loading on smartphones, tablets, and computers, ensuring ${lead.companyName} makes a strong first impression.`;
+        const s1Title = 'Modern, High-Speed Official Website';
+        const s1Desc = `A clean, professional website engineered for instant loading on smartphones, tablets, and computers, ensuring ${lead.companyName} establishes strong online credibility.`;
 
-      const s2Title = 'Automated 24/7 Client Booking & Inquiry Portal';
-      const s2Desc = 'An intuitive, mobile-friendly booking system that allows prospective clients to request appointments or inquiries directly at any time of day.';
+        const s2Title = 'Automated 24/7 Client Booking & Inquiry System';
+        const s2Desc = 'An intuitive, mobile-friendly booking system that allows prospective clients to request appointments or inquiries directly at any time of day.';
 
-      const s3Title = 'Local Search & Google Visibility Optimization';
-      const s3Desc = `Structured service pages and Google local search optimization to help ${lead.companyName} attract organic search traffic across ${city}.`;
+        const s3Title = 'Local Search & Google Visibility Optimization';
+        const s3Desc = `Structured service pages and Google local search optimization to help ${lead.companyName} attract organic search traffic across ${city}.`;
 
-      return WEB_DEV_TEMPLATE
-        .replace(/{{first_name_or_team}}/g, firstNameOrTeam)
-        .replace(/{{company_name}}/g, lead.companyName)
-        .replace(/{{industry}}/g, lead.industry)
-        .replace(/{{city}}/g, city)
-        .replace(/{{personalized_observation}}/g, `your strong local customer reputation and presence in ${city}`)
-        .replace(/{{website_problem_1}}/g, p1)
-        .replace(/{{website_problem_1_business_impact}}/g, imp1)
-        .replace(/{{website_problem_2}}/g, p2)
-        .replace(/{{website_problem_2_business_impact}}/g, imp2)
-        .replace(/{{website_problem_3}}/g, p3)
-        .replace(/{{website_problem_3_business_impact}}/g, imp3)
-        .replace(/{{website_solution_1_title}}/g, s1Title)
-        .replace(/{{website_solution_1_description_and_benefit}}/g, s1Desc)
-        .replace(/{{website_solution_2_title}}/g, s2Title)
-        .replace(/{{website_solution_2_description_and_benefit}}/g, s2Desc)
-        .replace(/{{website_solution_3_title}}/g, s3Title)
-        .replace(/{{website_solution_3_description_and_benefit}}/g, s3Desc);
+        return ZERO_WEBSITE_DEV_TEMPLATE
+          .replace(/{{first_name_or_team}}/g, firstNameOrTeam)
+          .replace(/{{company_name}}/g, lead.companyName)
+          .replace(/{{industry}}/g, lead.industry)
+          .replace(/{{city}}/g, city)
+          .replace(/{{personalized_observation}}/g, `your strong local customer reputation and presence in ${city}`)
+          .replace(/{{website_problem_1}}/g, p1)
+          .replace(/{{website_problem_1_business_impact}}/g, imp1)
+          .replace(/{{website_problem_2}}/g, p2)
+          .replace(/{{website_problem_2_business_impact}}/g, imp2)
+          .replace(/{{website_problem_3}}/g, p3)
+          .replace(/{{website_problem_3_business_impact}}/g, imp3)
+          .replace(/{{website_solution_1_title}}/g, s1Title)
+          .replace(/{{website_solution_1_description_and_benefit}}/g, s1Desc)
+          .replace(/{{website_solution_2_title}}/g, s2Title)
+          .replace(/{{website_solution_2_description_and_benefit}}/g, s2Desc)
+          .replace(/{{website_solution_3_title}}/g, s3Title)
+          .replace(/{{website_solution_3_description_and_benefit}}/g, s3Desc);
+      } else {
+        const p1 = 'Mobile experience and page response times';
+        const imp1 = 'Potential clients browsing on smartphones often experience formatting delays and navigation friction, leading many to drop off before contacting you.';
+
+        const p2 = 'No direct after-hours online appointment or inquiry booking';
+        const imp2 = 'Customers wishing to schedule consultations or service visits in the evening or weekends have no automated way to book, forcing all intake onto manual telephone calls.';
+
+        const p3 = 'Clear service positioning and customer trust cues';
+        const imp3 = 'First-time visitors need immediate confidence through clean service breakdowns and visible client reviews to take the next step without hesitation.';
+
+        const s1Title = 'Modern, High-Speed Responsive Website Redesign';
+        const s1Desc = `A clean, professional website engineered for instant loading on smartphones, tablets, and computers, ensuring ${lead.companyName} makes a strong first impression.`;
+
+        const s2Title = 'Automated 24/7 Client Booking & Inquiry Portal';
+        const s2Desc = 'An intuitive, mobile-friendly booking system that allows prospective clients to request appointments or inquiries directly at any time of day.';
+
+        const s3Title = 'Local Search & Google Visibility Optimization';
+        const s3Desc = `Structured service pages and Google local search optimization to help ${lead.companyName} attract organic search traffic across ${city}.`;
+
+        return WEB_DEV_TEMPLATE
+          .replace(/{{first_name_or_team}}/g, firstNameOrTeam)
+          .replace(/{{company_name}}/g, lead.companyName)
+          .replace(/{{industry}}/g, lead.industry)
+          .replace(/{{city}}/g, city)
+          .replace(/{{personalized_observation}}/g, `your strong local customer reputation and presence in ${city}`)
+          .replace(/{{website_problem_1}}/g, p1)
+          .replace(/{{website_problem_1_business_impact}}/g, imp1)
+          .replace(/{{website_problem_2}}/g, p2)
+          .replace(/{{website_problem_2_business_impact}}/g, imp2)
+          .replace(/{{website_problem_3}}/g, p3)
+          .replace(/{{website_problem_3_business_impact}}/g, imp3)
+          .replace(/{{website_solution_1_title}}/g, s1Title)
+          .replace(/{{website_solution_1_description_and_benefit}}/g, s1Desc)
+          .replace(/{{website_solution_2_title}}/g, s2Title)
+          .replace(/{{website_solution_2_description_and_benefit}}/g, s2Desc)
+          .replace(/{{website_solution_3_title}}/g, s3Title)
+          .replace(/{{website_solution_3_description_and_benefit}}/g, s3Desc);
+      }
     }
 
     if (track === 'erp') {
@@ -477,14 +557,24 @@ export class PitchCrafterAgent extends BaseAgent {
     firstNameOrTeam: string,
     settings: any
   ): Promise<{ subject: string; body: string } | null> {
+    const hasNoWebsite = !lead.website || lead.website.toLowerCase().includes('none');
+
     const selectedTemplate =
       track === 'web_development'
-        ? WEB_DEV_TEMPLATE
+        ? (hasNoWebsite ? ZERO_WEBSITE_DEV_TEMPLATE : WEB_DEV_TEMPLATE)
         : track === 'erp'
         ? ERP_TEMPLATE
         : AUTOMATION_TEMPLATE;
 
-    const hasNoWebsite = !lead.website || lead.website.toLowerCase().includes('none');
+    const websiteGuidanceRule = hasNoWebsite
+      ? `• THIS BUSINESS HAS NO STANDALONE OFFICIAL WEBSITE.
+You MUST use the ZERO_WEBSITE_DEV_TEMPLATE ("Where an official website would make an immediate difference").
+Focus on building their first digital presence, establishing online credibility, and deploying a 24/7 online booking engine.
+DO NOT refer to an "existing website".`
+      : `• THIS BUSINESS HAS AN OFFICIAL LIVE WEBSITE AT "${lead.website}".
+You MUST use the WEB_DEV_TEMPLATE ("Where your website could improve").
+Focus on modernizing, speeding up, and improving conversion on their existing website.
+NEVER state or imply that they lack an official website.`;
 
     const prompt = `You are Rajan Thakulla, Lead Engineer at JESORA TECH (jesoratech.com).
 Your task is to write a highly tailored, professional B2B outreach email to a prospective client.
@@ -494,16 +584,18 @@ PROSPECT DETAILS:
 • Recipient: ${firstNameOrTeam}
 • Industry: ${lead.industry}
 • City: ${city}
-• Website Status: ${hasNoWebsite ? 'No official website detected' : lead.website}
+• Website: ${hasNoWebsite ? 'None (Social / Directory Only)' : lead.website}
 • Context: ${lead.painPoints || 'Digital presence & workflow modernization'}
 
 PITCH TRACK: ${track.toUpperCase()}
+
+${websiteGuidanceRule}
 
 CRITICAL RULES:
 1. You MUST follow the EXACT template below word-for-word, replacing ONLY the placeholders enclosed in {{...}}.
 2. DO NOT mention any third-party portfolio websites, client names, or URLs (e.g. NEVER mention MotoFix, motohubfix.vercel.app, writewell.space, or any external client links).
 3. DO NOT use technical jargon (NO TTFB, NO milliseconds latency numbers, NO HSTS/CSP, NO headless Next.js monolithic talk). Explain all issues and solutions in tech-literate, clear business English that any business owner understands.
-4. Keep the exact section headers ("Where your website could improve", "How JESORA TECH can help", etc.) and numbered items ("01 —", "02 —", "03 —").
+4. Keep the exact section headers and numbered items ("01 —", "02 —", "03 —").
 5. The sign-off must be exactly:
 Best regards,
 
