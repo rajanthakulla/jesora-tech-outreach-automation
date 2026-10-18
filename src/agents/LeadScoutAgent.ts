@@ -252,18 +252,38 @@ export class LeadScoutAgent extends BaseAgent {
 
     const [lon, lat] = feature.geometry.coordinates;
 
-    // 2. Map campaign niche to Geoapify categories
-    let categories = 'commercial,office,catering.restaurant';
-    const nicheLower = campaign.targetNiche.toLowerCase();
-    if (nicheLower.includes('health') || nicheLower.includes('clinic') || nicheLower.includes('dental')) {
+    // 2. Select targeted specific keyword from pool to search dynamically
+    const targetPool = (campaign.keywords && campaign.keywords.length > 0)
+      ? campaign.keywords
+      : campaign.targetNiche.split(',').map(s => s.trim());
+    const selectedKeyword = targetPool[Math.floor(Math.random() * targetPool.length)];
+    const kwLower = selectedKeyword.toLowerCase();
+
+    // 3. Map campaign niche / selected keyword to high-precision Geoapify categories
+    let categories = 'commercial,office';
+    if (kwLower.includes('driving')) {
+      categories = 'education.driving_school,service';
+    } else if (kwLower.includes('language')) {
+      categories = 'education.language_school,education';
+    } else if (kwLower.includes('tuition') || kwLower.includes('tutor') || kwLower.includes('school') || kwLower.includes('academy')) {
+      categories = 'education.school,education.college,education';
+    } else if (kwLower.includes('garage') || kwLower.includes('auto repair') || kwLower.includes('car repair') || kwLower.includes('mechanic') || kwLower.includes('vehicle')) {
+      categories = 'service.vehicle,commercial.vehicle';
+    } else if (kwLower.includes('salon') || kwLower.includes('parlour') || kwLower.includes('hair') || kwLower.includes('barber') || kwLower.includes('nail') || kwLower.includes('beauty') || kwLower.includes('spa')) {
+      categories = 'service.beauty.hairdresser,service.beauty,service.beauty.spa';
+    } else if (kwLower.includes('cafe') || kwLower.includes('coffee') || kwLower.includes('bakery')) {
+      categories = 'catering.cafe,catering.coffee_shop';
+    } else if (kwLower.includes('mortgage') || kwLower.includes('finance') || kwLower.includes('loan') || kwLower.includes('broker')) {
+      categories = 'office.financial,service.financial,office.estate_agent';
+    } else if (kwLower.includes('health') || kwLower.includes('clinic') || kwLower.includes('dental')) {
       categories = 'healthcare.clinic_or_praxis,healthcare.dentist,healthcare.hospital';
-    } else if (nicheLower.includes('software') || nicheLower.includes('tech') || nicheLower.includes('saas') || nicheLower.includes('it')) {
+    } else if (kwLower.includes('software') || kwLower.includes('tech') || kwLower.includes('saas') || kwLower.includes('it')) {
       categories = 'office.it,office.company,commercial';
-    } else if (nicheLower.includes('retail') || nicheLower.includes('ecommerce') || nicheLower.includes('store')) {
+    } else if (kwLower.includes('retail') || kwLower.includes('ecommerce') || kwLower.includes('store') || kwLower.includes('inventory')) {
       categories = 'commercial.supermarket,commercial.shopping_mall,commercial.clothing';
     }
 
-    this.log('info', `[Geoapify] Searching live commercial places for "${campaign.targetNiche}" around ${location}...`);
+    this.log('info', `[Geoapify] Searching live commercial places for "${selectedKeyword}" (${categories}) around ${location}...`);
     const placesUrl = `https://api.geoapify.com/v2/places?categories=${categories}&filter=circle:${lon},${lat},25000&limit=${targetCount * 3}&apiKey=${apiKey}`;
 
     const placesRes = await fetch(placesUrl, { signal: AbortSignal.timeout(12000) }).catch(() => null);
@@ -285,16 +305,17 @@ export class LeadScoutAgent extends BaseAgent {
       const scrapedEmail = await this.scrapeEmailFromWebsite(website);
       if (!scrapedEmail) continue;
 
+      const capitalizedIndustry = selectedKeyword.charAt(0).toUpperCase() + selectedKeyword.slice(1);
       discovered.push({
         companyName,
         website,
-        industry: campaign.targetNiche,
+        industry: capitalizedIndustry,
         contactName: 'Executive Team',
         contactTitle: 'Managing Director / Founder',
         email: scrapedEmail,
         address,
         country: location,
-        detectedPainPoints: `Digital modernization and conversion optimization for ${companyName}`,
+        detectedPainPoints: `Digital modernization, online booking, and visual conversion optimization for ${companyName}`,
         techStackClues: 'Geoapify Verified Commercial Business',
         score: Math.floor(Math.random() * 8 + 89)
       });
@@ -319,7 +340,11 @@ export class LeadScoutAgent extends BaseAgent {
       return !lower.includes('nepal') && !lower.includes('india');
     });
     const location = allowedLocations[Math.floor(Math.random() * allowedLocations.length)] || 'London, UK';
-    const textQuery = `${campaign.targetNiche} in ${location}`;
+    const targetPool = (campaign.keywords && campaign.keywords.length > 0)
+      ? campaign.keywords
+      : campaign.targetNiche.split(',').map(s => s.trim());
+    const selectedKeyword = targetPool[Math.floor(Math.random() * targetPool.length)];
+    const textQuery = `${selectedKeyword} in ${location}`;
     this.log('info', `[Google Places] Live searching: "${textQuery}"...`);
 
     const url = 'https://places.googleapis.com/v1/places:searchText';
@@ -371,10 +396,11 @@ export class LeadScoutAgent extends BaseAgent {
           continue;
         }
 
+        const capitalizedIndustry = selectedKeyword.charAt(0).toUpperCase() + selectedKeyword.slice(1);
         discoveredSeeds.push({
           companyName,
           website,
-          industry: campaign.targetNiche,
+          industry: capitalizedIndustry,
           contactName: 'Executive Team',
           contactTitle: 'Managing Director / Owner',
           email: scrapedEmail,

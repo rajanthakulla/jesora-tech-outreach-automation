@@ -178,19 +178,43 @@ export class PitchCrafterAgent extends BaseAgent {
       };
     }
 
-    if (text.includes('automotive') || text.includes('bike') || text.includes('workshop') || text.includes('booking') || text.includes('service')) {
+    if (text.includes('automotive') || text.includes('bike') || text.includes('workshop') || text.includes('garage') || text.includes('car repair') || text.includes('auto repair') || text.includes('mechanic')) {
       return {
         title: 'MOTOFIX HUB — Service & Booking Platform',
         url: 'https://motohubfix.vercel.app',
-        highlight: 'Live workshop queue tracking, automated appointment scheduling, package billing.'
+        highlight: 'Live workshop queue tracking, customer repair estimates, and automated appointment scheduling.'
       };
     }
 
-    if (text.includes('education') || text.includes('school') || text.includes('edtech') || text.includes('campus') || text.includes('lms')) {
+    if (text.includes('driving') || text.includes('salon') || text.includes('beauty') || text.includes('parlour') || text.includes('hair') || text.includes('spa') || text.includes('barber')) {
       return {
-        title: 'Radiant Montessori School Web Campus',
+        title: 'Jesora 1-Click Client Booking & Scheduling Engine',
+        url: 'https://motohubfix.vercel.app',
+        highlight: 'Mobile-first 1-click booking calendar, automated appointment reminders, zero per-seat commissions.'
+      };
+    }
+
+    if (text.includes('education') || text.includes('school') || text.includes('edtech') || text.includes('campus') || text.includes('lms') || text.includes('tuition') || text.includes('tutor') || text.includes('language')) {
+      return {
+        title: 'Radiant Montessori School Web Campus & Student Portal',
         url: 'https://rme.edu.np',
-        highlight: 'Full web portal and student notice system serving 2,300+ students.'
+        highlight: 'Full web portal and student notice/intake system serving 2,300+ students.'
+      };
+    }
+
+    if (text.includes('mortgage') || text.includes('finance') || text.includes('broker') || text.includes('loan')) {
+      return {
+        title: 'Jesora Secure Client Intake & Financial Document Portal',
+        url: 'https://jesoratech.com',
+        highlight: 'Automated client qualification, encrypted document checklist upload, and real-time application pipeline.'
+      };
+    }
+
+    if (text.includes('cafe') || text.includes('coffee') || text.includes('bakery') || text.includes('restaurant')) {
+      return {
+        title: 'Jesora High-Speed Visual Menu & Mobile Ordering Engine',
+        url: 'https://razzletikapur.vercel.app',
+        highlight: 'Sub-second mobile loading, digital visual menus, table ordering, and Google review automation.'
       };
     }
 
@@ -257,12 +281,19 @@ export class PitchCrafterAgent extends BaseAgent {
       if (isEnterprise) {
         if (stepNumber === 1) {
           stepStrategy = `STEP 1 ANGLE: OPERATIONAL OVERHEAD & BESPOKE INTERNAL WORKFLOW REDESIGN
-- Hook: Acknowledge that in ${lead.industry}, manual spreadsheets, dated interfaces, and rigid off-the-shelf tools slow down operations.
+- Hook: Acknowledge that in ${lead.industry}, manual phone calls, spreadsheet chaos, and rigid off-the-shelf software create friction for both customers and staff.
+- Industry Tailoring:
+  * If Beauty Parlour / Hair Salon / Barber: Emphasize editorial luxury visual aesthetics, frictionless 1-click mobile appointment booking, and automated review capture.
+  * If Driving School: Emphasize student lesson scheduling, instructor availability calendar, and automated booking notifications.
+  * If Garage / Auto Repair: Emphasize live vehicle service queue tracking, customer repair quote approvals, and automated job status notifications (like MotoFix Hub).
+  * If Tuition Center / Language School / Academy: Emphasize student registration portal, course timetable intake, and automated parent/student communication.
+  * If Cafe / Coffee Shop: Emphasize instant mobile visual menu, high-conversion visual design, local SEO, and automated 5-star Google review capture.
+  * If Mortgage Center: Emphasize high-trust modern UI, secure document checklist upload, and automated client qualification funnel.
 - Flaw Insight: Highlight both the visual clutter / UX friction and technical bottlenecks found on their portal:
 ${flawSection}
-- Introduce: Custom lightweight Cloud ERP, automated customer dispatch, and real-time database designed 100% for ${lead.companyName}.
+- Introduce: Custom lightweight Cloud ERP / Booking Engine and real-time database designed 100% for ${lead.companyName}.
 - Highlights: 100% full source code ownership, zero recurring per-seat monthly license fees.
-- Social Proof: Mention MotoFix (motohubfix.vercel.app) for real-time queue & scheduling automation.
+- Social Proof: Mention ${relevantCaseStudy.title} (${relevantCaseStudy.url}): "${relevantCaseStudy.highlight}".
 - Call To Action: Low-friction ask for a 10-minute discovery call to explore eliminating 10+ hours/week of manual admin overhead.`;
         } else if (stepNumber === 2) {
           stepStrategy = `STEP 2 ANGLE: CASE STUDY TEARDOWN & CONCRETE TIME-SAVINGS

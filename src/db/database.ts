@@ -538,6 +538,16 @@ export class AppDatabase {
         status, sequence_id, daily_limit, leads_targeted, leads_contacted,
         leads_replied, meetings_booked, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        name = excluded.name,
+        description = excluded.description,
+        target_niche = excluded.target_niche,
+        target_locations = excluded.target_locations,
+        keywords = excluded.keywords,
+        status = excluded.status,
+        sequence_id = excluded.sequence_id,
+        daily_limit = excluded.daily_limit,
+        updated_at = excluded.updated_at
     `);
 
     stmt.run(
@@ -557,6 +567,8 @@ export class AppDatabase {
       campaign.createdAt,
       campaign.updatedAt
     );
+
+    this.neonDb?.insertCampaign(campaign).catch(() => {});
   }
 
   public updateCampaignStats(campaignId: string): void {
@@ -1263,29 +1275,7 @@ Founder & Lead Engineer | JESORA TECH`
     this.insertSequence(defaultSeq);
     this.insertSequence(enterpriseSeq);
 
-    try {
-      this.db.prepare("UPDATE campaigns SET sequence_id = 'seq-enterprise-automation' WHERE id = 'camp-enterprise-erp-retail' AND sequence_id = 'seq-jesora-fullstack'").run();
-      this.db.prepare(`
-        UPDATE campaigns 
-        SET target_locations = '["US", "UK", "Canada", "Malta", "Germany", "Netherlands", "Ireland"]'
-        WHERE id = 'camp-global-startups'
-      `).run();
-      this.db.prepare(`
-        UPDATE campaigns 
-        SET target_locations = '["UK", "US", "Canada", "Malta", "Germany", "Netherlands", "Ireland", "Australia"]',
-            name = 'Enterprise ERP & Digital Modernization (US, UK, Malta & Europe)',
-            target_niche = 'Enterprise Services, Logistics, Healthcare, E-Commerce'
-        WHERE id = 'camp-enterprise-erp-retail'
-      `).run();
-    } catch {}
-  }
-
-  // --- Defaults Seed ---
-  private seedDefaultsIfEmpty(): void {
-    const campaignCount = (this.db.prepare('SELECT COUNT(*) as c FROM campaigns').get() as any).c;
-    if (campaignCount > 0) return;
-
-    // Seed default Campaigns
+    // Ensure all 4 foreign-market campaigns are seeded and synced
     const now = new Date().toISOString();
     const campaign1: Campaign = {
       id: 'camp-global-startups',
@@ -1306,12 +1296,48 @@ Founder & Lead Engineer | JESORA TECH`
     };
 
     const campaign2: Campaign = {
+      id: 'camp-local-services-booking',
+      name: 'Local Services & Booking Automation (Salons, Garages, Cafes & Driving Schools)',
+      description: 'Outreach to driving schools, auto repair garages, beauty parlours, hair salons, and specialty cafes in US, UK, Canada, Malta & Europe needing automated appointment scheduling, mobile-first redesigns, and customer review automation.',
+      targetNiche: 'Driving Schools, Auto Repair Garages, Beauty Salons & Parlours, Cafes',
+      targetLocations: ['US', 'UK', 'Canada', 'Malta', 'Germany', 'Netherlands', 'Ireland', 'Australia'],
+      keywords: ['driving school', 'auto repair garage', 'car repair mechanic', 'hair salon', 'beauty parlour', 'cafe', 'barbershop', 'nail salon', 'coffee shop', 'appointment booking'],
+      status: 'active',
+      sequenceId: 'seq-enterprise-automation',
+      dailyLimit: 30,
+      leadsTargeted: 0,
+      leadsContacted: 0,
+      leadsReplied: 0,
+      meetingsBooked: 0,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    const campaign3: Campaign = {
+      id: 'camp-education-mortgage-centers',
+      name: 'Education & Financial Centers (Tuition, Language Schools & Mortgage Brokers)',
+      description: 'Outreach to tuition centers, language schools, private academies, and mortgage brokerages in US, UK, Canada, Malta & Europe needing streamlined student intake, client portal, and visual UI modernization.',
+      targetNiche: 'Tuition Centers, Language Schools, Private Schools, Mortgage Brokers',
+      targetLocations: ['US', 'UK', 'Canada', 'Malta', 'Germany', 'Netherlands', 'Ireland', 'Australia'],
+      keywords: ['tuition center', 'tutoring academy', 'language school', 'language classes', 'mortgage broker', 'mortgage center', 'private school', 'music school', 'student portal'],
+      status: 'active',
+      sequenceId: 'seq-enterprise-automation',
+      dailyLimit: 25,
+      leadsTargeted: 0,
+      leadsContacted: 0,
+      leadsReplied: 0,
+      meetingsBooked: 0,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    const campaign4: Campaign = {
       id: 'camp-enterprise-erp-retail',
       name: 'Enterprise ERP & Digital Modernization (US, UK, Malta & Europe)',
       description: 'Reaching mid-market enterprises, logistics, healthcare, and retail businesses in US, Canada, UK, Malta & European markets needing workflow automation and custom ERPs',
-      targetNiche: 'Enterprise Services, Logistics, Healthcare, E-Commerce',
+      targetNiche: 'Enterprise Services, Logistics, Healthcare, E-Commerce, Retail',
       targetLocations: ['UK', 'US', 'Canada', 'Malta', 'Germany', 'Netherlands', 'Ireland', 'Australia'],
-      keywords: ['ERP', 'CRM', 'E-Commerce', 'Inventory', 'Clinic Management', 'School LMS'],
+      keywords: ['ERP', 'CRM', 'E-Commerce', 'Inventory', 'Clinic Management', 'Logistics'],
       status: 'active',
       sequenceId: 'seq-enterprise-automation',
       dailyLimit: 25,
@@ -1325,6 +1351,14 @@ Founder & Lead Engineer | JESORA TECH`
 
     this.insertCampaign(campaign1);
     this.insertCampaign(campaign2);
+    this.insertCampaign(campaign3);
+    this.insertCampaign(campaign4);
+  }
+
+  // --- Defaults Seed ---
+  private seedDefaultsIfEmpty(): void {
+    const campaignCount = (this.db.prepare('SELECT COUNT(*) as c FROM campaigns').get() as any).c;
+    if (campaignCount > 0) return;
 
     // Seed initial agents telemetry
     const initialAgents: AgentTelemetry[] = [
