@@ -295,14 +295,35 @@ export class LeadScoutAgent extends BaseAgent {
 
     for (const place of places) {
       const p = place.properties;
-      if (!p.name || !p.formatted || !p.website) continue;
+      if (!p.name || !p.formatted) continue;
 
       const companyName = p.name.trim();
       const address = p.formatted.trim();
-      const website = p.website.trim();
+      
+      const rawListingEmail = p.email || p.contact?.email || p.datasource?.raw?.['contact:email'] || p.datasource?.raw?.email || null;
+      const rawSocialUrl = p.datasource?.raw?.['contact:facebook'] || p.datasource?.raw?.['contact:instagram'] || null;
+      const rawWebsite = p.website ? p.website.trim() : null;
 
-      // Scrape contact email from website
-      const scrapedEmail = await this.scrapeEmailFromWebsite(website);
+      let website = '';
+      let scrapedEmail = rawListingEmail;
+      let hasOfficialWebsite = false;
+
+      if (!rawWebsite) {
+        // Business has NO official website (User priority: "maximum not have a website")
+        hasOfficialWebsite = false;
+        website = rawSocialUrl || 'None (No Official Website)';
+        if (!scrapedEmail && rawSocialUrl) {
+          scrapedEmail = await this.scrapeEmailFromWebsite(rawSocialUrl);
+        }
+      } else {
+        // Business has website listed
+        hasOfficialWebsite = true;
+        website = rawWebsite;
+        if (!scrapedEmail) {
+          scrapedEmail = await this.scrapeEmailFromWebsite(rawWebsite);
+        }
+      }
+
       if (!scrapedEmail) continue;
 
       const capitalizedIndustry = selectedKeyword.charAt(0).toUpperCase() + selectedKeyword.slice(1);
@@ -315,12 +336,15 @@ export class LeadScoutAgent extends BaseAgent {
         email: scrapedEmail,
         address,
         country: location,
-        detectedPainPoints: `Digital modernization, online booking, and visual conversion optimization for ${companyName}`,
-        techStackClues: 'Geoapify Verified Commercial Business',
-        score: Math.floor(Math.random() * 8 + 89)
+        detectedPainPoints: hasOfficialWebsite
+          ? `Digital modernization, online booking, and visual conversion optimization for ${companyName}`
+          : `Zero official website or digital booking presence for ${companyName} — losing 100% of organic Google local search traffic to competitors.`,
+        techStackClues: hasOfficialWebsite ? 'Geoapify Verified Commercial Business' : 'No Official Website (Social/Listing Only)',
+        // Prioritize leads without a website with higher scores (96-100) per user instruction
+        score: hasOfficialWebsite ? Math.floor(Math.random() * 6 + 88) : Math.floor(Math.random() * 4 + 96)
       });
 
-      this.log('success', `[Geoapify] Discovered live lead: ${companyName} (${address}) — Email: ${scrapedEmail}`);
+      this.log('success', `[Geoapify] Discovered live lead: ${companyName} (${address}) [Website: ${hasOfficialWebsite ? 'Yes' : 'NO - High Priority'}] — Email: ${scrapedEmail}`);
 
       if (discovered.length >= targetCount) break;
     }
@@ -383,16 +407,21 @@ export class LeadScoutAgent extends BaseAgent {
       const discoveredSeeds: ProspectSeed[] = [];
 
       for (const place of places) {
-        if (!place.websiteUri || !place.formattedAddress) continue;
+        if (!place.formattedAddress) continue;
 
         const companyName = place.displayName?.text || 'Business';
-        const website = place.websiteUri;
+        const rawWebsite = place.websiteUri;
         const address = place.formattedAddress;
+        const hasOfficialWebsite = Boolean(rawWebsite);
+        const website = rawWebsite || 'None (No Official Website)';
 
-        // Attempt live web contact scraping
-        const scrapedEmail = await this.scrapeEmailFromWebsite(website);
+        let scrapedEmail: string | null = null;
+        if (rawWebsite) {
+          scrapedEmail = await this.scrapeEmailFromWebsite(rawWebsite);
+        }
+
         if (!scrapedEmail) {
-          // If website has no email, discard to maintain 100% integrity
+          // Discard if no contact email found
           continue;
         }
 
@@ -406,9 +435,11 @@ export class LeadScoutAgent extends BaseAgent {
           email: scrapedEmail,
           address,
           country: location,
-          detectedPainPoints: `Digital presence modernization and automated booking funnel for ${companyName}`,
-          techStackClues: 'Google Places Verified Business',
-          score: Math.floor(Math.random() * 8 + 88)
+          detectedPainPoints: hasOfficialWebsite
+            ? `Digital presence modernization and automated booking funnel for ${companyName}`
+            : `Zero official website or digital booking presence for ${companyName} — losing 100% of organic Google local search traffic to competitors.`,
+          techStackClues: hasOfficialWebsite ? 'Google Places Verified Business' : 'No Official Website (Social/Listing Only)',
+          score: hasOfficialWebsite ? Math.floor(Math.random() * 6 + 88) : Math.floor(Math.random() * 4 + 96)
         });
 
         if (discoveredSeeds.length >= targetCount) break;

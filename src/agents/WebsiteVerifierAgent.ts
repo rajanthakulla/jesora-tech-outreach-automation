@@ -28,7 +28,23 @@ export class WebsiteVerifierAgent extends BaseAgent {
       this.setTask(`Verifying live domain accessibility for ${lead.companyName}...`);
       const result = await this.verifyWebsitePresence(lead.website);
 
-      if (result.isLive) {
+      const isNoWebsiteLead = !lead.website || lead.website.toLowerCase().includes('none');
+
+      if (isNoWebsiteLead || !result.isLive) {
+        // High-value opportunity: Business has NO live website per user strategy!
+        verifiedCount += 1;
+        this.db.updateLead(lead.id, {
+          websiteVerified: true,
+          status: 'website_verified',
+          score: Math.min(100, Math.max(lead.score, 98)),
+          notes: 'Confirmed: Business has NO official website. Prime candidate for bespoke Next.js website & online booking engine.'
+        });
+        this.log('success', `★ High-Priority Prospect: ${lead.companyName} has NO functional website (${lead.website || 'None'}). Proceeding to Zero-Website Audit & Custom Pitch!`, {
+          leadId: lead.id,
+          website: lead.website
+        });
+      } else {
+        // Business has a functional live website
         verifiedCount += 1;
         this.db.updateLead(lead.id, {
           websiteVerified: true,
@@ -36,17 +52,6 @@ export class WebsiteVerifierAgent extends BaseAgent {
           score: Math.min(100, lead.score + 5)
         });
         this.log('success', `✓ Verified live website for ${lead.companyName} (${lead.website}) [${result.statusMessage}]`, {
-          leadId: lead.id,
-          website: lead.website
-        });
-      } else {
-        discardedCount += 1;
-        this.db.updateLead(lead.id, {
-          websiteVerified: false,
-          status: 'discarded',
-          notes: `Discarded: No active website found. (${result.reason})`
-        });
-        this.log('warn', `✗ Discarded ${lead.companyName} — No functional website present: ${result.reason}`, {
           leadId: lead.id,
           website: lead.website
         });

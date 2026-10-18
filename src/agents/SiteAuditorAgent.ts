@@ -63,6 +63,36 @@ export class SiteAuditorAgent extends BaseAgent {
    * Performs deep network, header, DOM, and visual design diagnostics on a lead's website
    */
   public async auditWebsite(lead: Lead): Promise<SiteFlawReport> {
+    if (!lead.website || lead.website.toLowerCase().includes('none') || lead.website.trim() === '') {
+      return {
+        summary: 'Zero official website or digital presence detected. Prime opportunity for custom web build and booking engine.',
+        loadLatencyMs: 0,
+        performanceScore: 10,
+        designScore: 5,
+        mobileResponsive: false,
+        criticalFlaws: [
+          'Total absence of an official digital web presence — 100% of organic Google local search traffic lost to competitors',
+          'No automated 24/7 client appointment booking engine — all client intake is restricted to manual telephone calls',
+          'Missing Google Schema.org / LocalBusiness digital structured data'
+        ],
+        conversionBottlenecks: [
+          'Potential customers searching on Google Maps and mobile have no website to view services, pricing, or credentials',
+          'Zero online lead capture funnel; customers cannot book after business hours'
+        ],
+        detectedTech: ['No Web Platform (Listing Only)'],
+        recommendedFixes: [
+          'Launch modern high-conversion Next.js website with 1-click mobile appointment booking',
+          'Deploy automated Google Review capture and Local SEO Schema to dominate local search market'
+        ],
+        designFlaws: [
+          'Total absence of digital visual brand identity, online portfolio, and modern responsive UI',
+          'No mobile-first booking interface or digital service catalog'
+        ],
+        visualHierarchyRating: 'dated',
+        auditedAt: new Date().toISOString()
+      };
+    }
+
     const rawUrl = lead.website.trim();
     const targetUrl = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
     const startTime = Date.now();

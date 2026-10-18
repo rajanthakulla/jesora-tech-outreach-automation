@@ -278,7 +278,17 @@ export class PitchCrafterAgent extends BaseAgent {
       const isEnterprise = sequence.id === 'seq-enterprise-automation';
 
       let stepStrategy = '';
-      if (isEnterprise) {
+      const hasNoWebsite = !lead.website || lead.website.toLowerCase().includes('none');
+
+      if (hasNoWebsite && stepNumber === 1) {
+        stepStrategy = `STEP 1 ANGLE: FIRST OFFICIAL WEBSITE & 1-CLICK MOBILE BOOKING ENGINE LAUNCH
+- Context: ${lead.companyName} currently has ZERO official website or digital booking portal in ${lead.country}.
+- Hook: Acknowledge that while ${lead.companyName} is well-regarded locally, customers searching on Google Maps and mobile have no direct website to view your full services, pricing, or book an appointment online.
+- Pain Point: Right now, 100% of organic search traffic and after-hours bookings are lost to local competitors who have online booking portals.
+- The Solution: We engineer custom, high-speed Next.js websites with built-in 1-click appointment booking, mobile-first visual polish, and automated review collection in 2 weeks with 100% source code ownership (zero monthly software fees).
+- Social Proof: Mention ${relevantCaseStudy.title} (${relevantCaseStudy.url}): "${relevantCaseStudy.highlight}".
+- Call To Action: Low-friction ask: "Would you be against taking a 2-minute peek at a prototype website concept we sketched out for ${lead.companyName}?"`;
+      } else if (isEnterprise) {
         if (stepNumber === 1) {
           stepStrategy = `STEP 1 ANGLE: OPERATIONAL OVERHEAD & BESPOKE INTERNAL WORKFLOW REDESIGN
 - Hook: Acknowledge that in ${lead.industry}, manual phone calls, spreadsheet chaos, and rigid off-the-shelf software create friction for both customers and staff.

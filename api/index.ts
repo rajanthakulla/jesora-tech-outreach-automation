@@ -532,21 +532,20 @@ app.post('/api/orchestrator/toggle', async (req: Request, res: Response) => {
   res.json({ success: true, isRunning24x7: Boolean(enable) });
 });
 
-app.post('/api/orchestrator/cycle', async (req: Request, res: Response) => {
+app.all(['/api/cron', '/api/orchestrator/cycle'], async (req: Request, res: Response) => {
   try {
     const now = new Date().toISOString();
     await neonDb.insertAgentLog({
       id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       agentId: 'orchestrator' as any,
       level: 'info',
-      message: 'Autonomous 8-agent cycle triggered via Cloud API across Neon fleet.',
+      message: '24x7 Autonomous Cloud Cycle triggered via Vercel Cloud Runner.',
       timestamp: now
     });
 
     res.json({
       success: true,
-      message: 'Autonomous cycle executed across Neon fleet',
-      cycleCount: 43,
+      message: '24x7 Autonomous cloud cycle triggered across Neon fleet',
       timestamp: now
     });
   } catch (err: any) {
