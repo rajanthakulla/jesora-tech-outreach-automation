@@ -20,9 +20,10 @@ export class DispatcherAgent extends BaseAgent {
     this.setTask('Checking scheduled messages and enforcing deliverability limits...');
     const settings = this.db.getSettings();
 
-    // 1. Business hours check
-    if (settings.pacing.businessHoursOnly) {
-      const currentHour = new Date().getUTCHours(); // Or local
+    // 1. Business hours check (can be bypassed for 24x7 global continuous delivery)
+    const enforceBusinessHours = settings.pacing.businessHoursOnly && process.env.BUSINESS_HOURS_ONLY !== 'false';
+    if (enforceBusinessHours) {
+      const currentHour = new Date().getHours();
       if (currentHour < settings.pacing.businessHoursStart || currentHour >= settings.pacing.businessHoursEnd) {
         return {
           actionsTaken: 0,

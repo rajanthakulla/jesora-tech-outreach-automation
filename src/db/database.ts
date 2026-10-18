@@ -197,14 +197,38 @@ export class AppDatabase {
       | { value: string }
       | undefined;
 
+    let settings: SystemSettings;
     if (row) {
       try {
-        return JSON.parse(row.value) as SystemSettings;
+        settings = JSON.parse(row.value) as SystemSettings;
       } catch {
-        // Fallback to default
+        settings = this.getDefaultSettings();
       }
+    } else {
+      settings = this.getDefaultSettings();
     }
-    return this.getDefaultSettings();
+
+    // Merge authoritative environment credentials to prevent stale empty passwords or accidental dry-run
+    if (process.env.SMTP_PASS) {
+      settings.smtp.pass = process.env.SMTP_PASS.replace(/\s+/g, '');
+    }
+    if (process.env.SMTP_USER) {
+      settings.smtp.user = process.env.SMTP_USER;
+      settings.smtp.fromEmail = process.env.SMTP_USER;
+    }
+    if (process.env.SMTP_DRY_RUN !== undefined) {
+      settings.smtp.dryRun = process.env.SMTP_DRY_RUN === 'false' ? false : true;
+    }
+    if (process.env.GEMINI_API_KEY) {
+      settings.ai.apiKey = process.env.GEMINI_API_KEY;
+    }
+    if (process.env.TELEGRAM_BOT_TOKEN) {
+      settings.telegram.botToken = process.env.TELEGRAM_BOT_TOKEN;
+      settings.telegram.chatId = process.env.TELEGRAM_CHAT_ID || settings.telegram.chatId;
+      settings.telegram.enabled = true;
+    }
+
+    return settings;
   }
 
   public saveSettings(settings: SystemSettings): void {
@@ -963,7 +987,8 @@ export class AppDatabase {
     const leadCounts = this.db.prepare(`
       SELECT
         COUNT(*) as total,
-        SUM(CASE WHEN status = 'scouted' THEN 1 ELSE 0 END) as scouted,
+        SUM(CASE WHEN status IN ('scouted', 'website_verified', 'audited') THEN 1 ELSE 0 END) as scouted,
+        SUM(CASE WHEN status = 'pitched' THEN 1 ELSE 0 END) as pitched,
         SUM(CASE WHEN status IN ('contacted', 'replied', 'meeting_scheduled', 'won') THEN 1 ELSE 0 END) as contacted,
         SUM(CASE WHEN status IN ('replied', 'meeting_scheduled', 'won') THEN 1 ELSE 0 END) as replied,
         SUM(CASE WHEN status = 'meeting_scheduled' THEN 1 ELSE 0 END) as meetings,
@@ -980,7 +1005,8 @@ export class AppDatabase {
     `).get() as any;
 
     const totalLeads = leadCounts?.total || 0;
-    const contacted = leadCounts?.contacted || 0;
+    const realSentCount = emailCount?.sent || 0;
+    const contacted = Math.max(realSentCount, leadCounts?.contacted || 0);
     const replied = leadCounts?.replied || 0;
     const meetings = leadCounts?.meetings || 0;
 
@@ -990,11 +1016,12 @@ export class AppDatabase {
     return {
       totalLeads,
       scoutedLeads: leadCounts?.scouted || 0,
+      pitchedLeads: leadCounts?.pitched || 0,
       contactedLeads: contacted,
       repliedLeads: replied,
       meetingsBooked: meetings,
       unsubscribedLeads: leadCounts?.unsubscribed || 0,
-      totalEmailsSent: emailCount?.sent || 0,
+      totalEmailsSent: realSentCount,
       activeCampaigns: activeCampaigns?.count || 0,
       replyRatePercent: Number(replyRate.toFixed(1)),
       conversionRatePercent: Number(convRate.toFixed(1))

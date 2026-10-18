@@ -40,7 +40,7 @@ export class PitchCrafterAgent extends BaseAgent {
       if (scheduledMsg) {
         this.db.insertMessage(scheduledMsg);
         this.db.updateLead(lead.id, {
-          status: 'contacted',
+          status: 'pitched',
           currentSequenceStep: 1,
           nextFollowUpAt: this.calculateFollowUpTime(targetSeq, 1)
         });
@@ -404,7 +404,7 @@ Return JSON with exact keys:
   "body": "Complete, polished, persuasive email body signed by Rajan Thakulla & The JESORA TECH Team"
 }`;
 
-      const candidateModels = [model, 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'].filter((v, i, a) => a.indexOf(v) === i);
+      const candidateModels = ['gemini-3.1-flash-lite', 'gemini-3.5-flash', 'gemini-3.8-flash'].filter((v, i, a) => a.indexOf(v) === i);
 
       for (const currentModel of candidateModels) {
         try {

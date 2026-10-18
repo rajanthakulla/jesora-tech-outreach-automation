@@ -289,8 +289,9 @@ function renderFunnel(stats) {
   const total = Math.max(1, stats.totalLeads);
   const steps = [
     { label: 'Total Discovered', count: stats.totalLeads, pct: 100 },
-    { label: 'Scouted & Audited', count: stats.scoutedLeads + stats.contactedLeads, pct: Math.min(100, Math.round(((stats.scoutedLeads + stats.contactedLeads) / total) * 100)) },
-    { label: 'Contacted (Sent)', count: stats.contactedLeads, pct: Math.min(100, Math.round((stats.contactedLeads / total) * 100)) },
+    { label: 'Scouted & Audited', count: stats.scoutedLeads || 0, pct: Math.min(100, Math.round(((stats.scoutedLeads || 0) / total) * 100)) },
+    { label: 'Pitched (Queued)', count: stats.pitchedLeads || 0, pct: Math.min(100, Math.round(((stats.pitchedLeads || 0) / total) * 100)) },
+    { label: 'Contacted (Sent)', count: stats.totalEmailsSent || 0, pct: Math.min(100, Math.round(((stats.totalEmailsSent || 0) / total) * 100)) },
     { label: 'Replies Received', count: stats.repliedLeads, pct: Math.min(100, Math.round((stats.repliedLeads / total) * 100)) },
     { label: 'Meetings Booked 🚀', count: stats.meetingsBooked, pct: Math.min(100, Math.round((stats.meetingsBooked / total) * 100)) }
   ];

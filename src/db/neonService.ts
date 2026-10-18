@@ -44,11 +44,45 @@ export class NeonDatabase {
   // --- Settings ---
   public async getSettings(): Promise<SystemSettings> {
     const res = await this.pool.query('SELECT value FROM settings WHERE key = $1', ['system_settings']);
+    let settings: SystemSettings;
     if (res.rows.length > 0) {
       try {
-        return JSON.parse(res.rows[0].value) as SystemSettings;
-      } catch {}
+        settings = JSON.parse(res.rows[0].value) as SystemSettings;
+      } catch {
+        settings = this.getDefaultSettings();
+      }
+    } else {
+      settings = this.getDefaultSettings();
     }
+
+    if (process.env.SMTP_PASS) {
+      settings.smtp.pass = process.env.SMTP_PASS.replace(/\s+/g, '');
+    }
+    if (process.env.SMTP_USER) {
+      settings.smtp.user = process.env.SMTP_USER;
+      settings.smtp.fromEmail = process.env.SMTP_USER;
+    }
+    if (process.env.SMTP_DRY_RUN !== undefined) {
+      settings.smtp.dryRun = process.env.SMTP_DRY_RUN === 'false' ? false : true;
+    }
+    if (process.env.GEMINI_API_KEY) {
+      settings.ai.apiKey = process.env.GEMINI_API_KEY;
+    }
+    if (process.env.TELEGRAM_BOT_TOKEN) {
+      settings.telegram.botToken = process.env.TELEGRAM_BOT_TOKEN;
+      settings.telegram.chatId = process.env.TELEGRAM_CHAT_ID || settings.telegram.chatId;
+      settings.telegram.enabled = true;
+    }
+
+    return settings;
+  }
+
+  private getDefaultSettings(): SystemSettings {
+    const smtpPass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
+    const imapPass = (process.env.IMAP_PASS || smtpPass).replace(/\s+/g, '');
+    const tgToken = process.env.TELEGRAM_BOT_TOKEN || '';
+    const tgChatId = process.env.TELEGRAM_CHAT_ID || '';
+    const geminiKey = process.env.GEMINI_API_KEY || '';
 
     return {
       smtp: {
@@ -546,6 +580,7 @@ export class NeonDatabase {
         SELECT 
           COUNT(*) as total,
           COUNT(CASE WHEN status IN ('scouted', 'website_verified', 'audited') THEN 1 END) as scouted,
+          COUNT(CASE WHEN status = 'pitched' THEN 1 END) as pitched,
           COUNT(CASE WHEN status = 'contacted' THEN 1 END) as contacted,
           COUNT(CASE WHEN status = 'replied' THEN 1 END) as replied,
           COUNT(CASE WHEN status = 'meeting_scheduled' THEN 1 END) as meetings,
@@ -559,11 +594,12 @@ export class NeonDatabase {
     const l = leadsRes.rows[0];
     const totalLeads = Number(l.total) || 0;
     const scoutedLeads = Number(l.scouted) || 0;
-    const contactedLeads = Number(l.contacted) || 0;
+    const pitchedLeads = Number(l.pitched) || 0;
+    const totalEmailsSent = Number(msgsRes.rows[0]?.sent) || 0;
+    const contactedLeads = Math.max(totalEmailsSent, Number(l.contacted) || 0);
     const repliedLeads = Number(l.replied) || 0;
     const meetingsBooked = Number(l.meetings) || 0;
     const unsubscribedLeads = Number(l.unsubscribed) || 0;
-    const totalEmailsSent = Number(msgsRes.rows[0]?.sent) || 0;
     const activeCampaigns = Number(campRes.rows[0]?.active) || 0;
 
     const replyRatePercent = contactedLeads > 0 ? Number(((repliedLeads / contactedLeads) * 100).toFixed(1)) : 0;
@@ -572,6 +608,7 @@ export class NeonDatabase {
     return {
       totalLeads,
       scoutedLeads,
+      pitchedLeads,
       contactedLeads,
       repliedLeads,
       meetingsBooked,

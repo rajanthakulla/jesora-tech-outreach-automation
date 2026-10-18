@@ -3,6 +3,7 @@ export type LeadStatus =
   | 'scouted'
   | 'website_verified'
   | 'audited'
+  | 'pitched'
   | 'contacted'
   | 'replied'
   | 'meeting_scheduled'
@@ -255,6 +256,7 @@ export interface SystemSettings {
 export interface PipelineStats {
   totalLeads: number;
   scoutedLeads: number;
+  pitchedLeads: number;
   contactedLeads: number;
   repliedLeads: number;
   meetingsBooked: number;
