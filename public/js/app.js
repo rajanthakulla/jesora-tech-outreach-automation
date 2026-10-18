@@ -11,6 +11,10 @@ const state = {
   leads: [],
   selectedLeadFilter: 'all',
   leadSearchQuery: '',
+  messages: [],
+  selectedMessageId: null,
+  outboxFilter: 'all',
+  outboxSearch: '',
   replies: [],
   selectedReplyId: null,
   meetings: [],
@@ -46,9 +50,51 @@ function initNavigation() {
     });
   });
 
+  // Wire up Bento Metric Deck cards to navigate to their respective sections
+  const bentoCards = document.querySelectorAll('.bento-card[data-nav]');
+  bentoCards.forEach(card => {
+    card.addEventListener('click', () => {
+      const target = card.dataset.nav;
+      if (target === 'leads') {
+        state.selectedLeadFilter = 'all';
+        document.querySelectorAll('#lead-status-filters .segment-tab').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.filter === 'all');
+        });
+      }
+      setActiveTab(target);
+    });
+  });
+
   const viewAllLogsBtn = document.getElementById('btn-view-all-logs');
   if (viewAllLogsBtn) {
     viewAllLogsBtn.addEventListener('click', () => setActiveTab('terminal'));
+  }
+
+  // Outbox search & filter listeners
+  const outboxSearchInput = document.getElementById('outbox-search-input');
+  if (outboxSearchInput) {
+    outboxSearchInput.addEventListener('input', (e) => {
+      state.outboxSearch = e.target.value.trim();
+      renderOutboxList();
+    });
+  }
+
+  const outboxStatusTabs = document.querySelectorAll('#outbox-status-filters .segment-tab');
+  outboxStatusTabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      outboxStatusTabs.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.outboxFilter = btn.dataset.filter;
+      renderOutboxList();
+    });
+  });
+
+  const btnRefreshOutbox = document.getElementById('btn-refresh-outbox');
+  if (btnRefreshOutbox) {
+    btnRefreshOutbox.addEventListener('click', () => {
+      loadOutbox();
+      showToast('Outbox refreshed', 'info');
+    });
   }
 }
 
@@ -64,6 +110,7 @@ function setActiveTab(targetTab) {
   const titleMap = {
     overview: 'Command Overview',
     leads: 'Leads Directory & Pipeline CRM',
+    outbox: 'Dispatched Outreach & Live Outbox',
     inbox: 'Inbound Sentinel & AI Sentiment',
     meetings: 'Booked Discovery Meetings',
     campaigns: 'Target Niches & Active Campaigns',
@@ -78,6 +125,7 @@ function setActiveTab(targetTab) {
 
   // Load specific tab data on switch
   if (targetTab === 'leads') loadLeads();
+  if (targetTab === 'outbox') loadOutbox();
   if (targetTab === 'inbox') loadInbox();
   if (targetTab === 'meetings') loadMeetings();
   if (targetTab === 'campaigns') loadCampaigns();
@@ -131,6 +179,7 @@ async function loadAllData() {
   await Promise.all([
     loadStatus(),
     loadLeads(),
+    loadOutbox(),
     loadInbox(),
     loadMeetings(),
     loadCampaigns(),
@@ -205,11 +254,13 @@ function renderKPIs(stats) {
 
   // Update nav badges
   const navLead = document.getElementById('tab-lead-count');
+  const navOutbox = document.getElementById('tab-outbox-count');
   const navReply = document.getElementById('tab-reply-count');
   const navMeet = document.getElementById('tab-meet-count');
   const badgeCamp = document.getElementById('badge-active-campaigns');
 
   if (navLead) navLead.textContent = stats.totalLeads || 0;
+  if (navOutbox) navOutbox.textContent = stats.totalEmailsSent || 0;
   if (navReply) navReply.textContent = stats.repliedLeads || 0;
   if (navMeet) navMeet.textContent = stats.meetingsBooked || 0;
   if (badgeCamp) badgeCamp.textContent = `${stats.activeCampaigns || 0} Campaigns`;
@@ -427,6 +478,183 @@ function renderLeadsTable() {
       </tr>
     `;
   }).join('');
+}
+
+// --- Dispatched Outbox Tab ---
+async function loadOutbox() {
+  try {
+    const res = await fetch('/api/messages?limit=150');
+    const data = await res.json();
+    if (data.success) {
+      state.messages = data.messages || [];
+      const badge = document.getElementById('outbox-count-badge');
+      const sentCount = state.messages.filter(m => m.status === 'sent').length;
+      if (badge) badge.textContent = `${sentCount} Dispatched`;
+      const navOutbox = document.getElementById('tab-outbox-count');
+      if (navOutbox) navOutbox.textContent = sentCount;
+
+      renderOutboxList();
+
+      if (state.messages.length > 0 && !state.selectedMessageId) {
+        const firstSent = state.messages.find(m => m.status === 'sent') || state.messages[0];
+        selectOutboxMessage(firstSent.id);
+      } else if (state.selectedMessageId) {
+        selectOutboxMessage(state.selectedMessageId);
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load outbox messages:', err);
+  }
+}
+
+function renderOutboxList() {
+  const container = document.getElementById('outbox-list-container');
+  if (!container) return;
+
+  let filtered = [...state.messages];
+
+  // 1. Filter by status
+  if (state.outboxFilter === 'sent') {
+    filtered = filtered.filter(m => m.status === 'sent');
+  } else if (state.outboxFilter === 'scheduled') {
+    filtered = filtered.filter(m => m.status === 'scheduled');
+  }
+
+  // 2. Filter by search query
+  if (state.outboxSearch) {
+    const q = state.outboxSearch.toLowerCase();
+    filtered = filtered.filter(m => 
+      (m.leadCompanyName && m.leadCompanyName.toLowerCase().includes(q)) ||
+      (m.leadContactName && m.leadContactName.toLowerCase().includes(q)) ||
+      (m.leadEmail && m.leadEmail.toLowerCase().includes(q)) ||
+      (m.subject && m.subject.toLowerCase().includes(q)) ||
+      (m.body && m.body.toLowerCase().includes(q))
+    );
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div style="padding: 30px 16px; text-align: center; color: var(--text-muted); font-size: 12px;">
+        No outreach messages found matching filter.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filtered.map(m => {
+    const isActive = m.id === state.selectedMessageId ? 'active' : '';
+    const isSent = m.status === 'sent';
+    const statusBadge = isSent 
+      ? '<span class="status-pill status-contacted" style="font-size: 9px; padding: 2px 6px;">Sent via SMTP</span>'
+      : '<span class="status-pill status-audited" style="font-size: 9px; padding: 2px 6px;">Scheduled</span>';
+    
+    const timeDisplay = m.sentAt 
+      ? formatTimeAgo(m.sentAt) 
+      : (m.scheduledFor ? `Due ${formatTimeAgo(m.scheduledFor)}` : 'Queued');
+
+    return `
+      <div class="inbox-thread-card ${isActive}" onclick="selectOutboxMessage('${m.id}')">
+        <div class="thread-card-top">
+          <span class="thread-sender-name" style="color: #FFF; font-size: 13px; font-weight: 700;">
+            ${escapeHtml(m.leadCompanyName || 'Prospective Client')}
+          </span>
+          <span class="thread-time-label">${timeDisplay}</span>
+        </div>
+        <div style="font-size: 11px; color: var(--accent-cyan); font-family: var(--font-mono); margin-bottom: 4px;">
+          ${escapeHtml(m.leadEmail || '')}
+        </div>
+        <div class="thread-subject-line" style="font-size: 12px; margin-bottom: 5px; color: #E2E8F0; font-weight: 600;">
+          ${escapeHtml(m.subject)}
+        </div>
+        <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 4px;">
+          ${statusBadge}
+          <span style="font-size: 9px; color: var(--text-muted); font-weight: 700;">STEP ${m.sequenceStepNumber}</span>
+        </div>
+        <div class="thread-body-snippet" style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+          ${escapeHtml(m.body.slice(0, 100))}...
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function selectOutboxMessage(msgId) {
+  state.selectedMessageId = msgId;
+  renderOutboxList();
+
+  const msg = state.messages.find(m => m.id === msgId);
+  const viewer = document.getElementById('outbox-viewer-container');
+  if (!msg || !viewer) return;
+
+  const isSent = msg.status === 'sent';
+  const deliveryStatusHtml = isSent
+    ? `<span style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34D399; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px;">
+        ✓ Dispatched via Gmail SMTP (${msg.sentAt ? new Date(msg.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' }) : 'Delivered'})
+       </span>`
+    : `<span style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #FBBF24; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px;">
+        ⏳ Scheduled for automated dispatch
+       </span>`;
+
+  viewer.innerHTML = `
+    <div style="border-bottom: 1px solid var(--border-hairline); padding-bottom: 16px; margin-bottom: 18px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <span style="font-size: 10px; font-weight: 800; color: var(--accent-indigo-light); letter-spacing: 0.8px; text-transform: uppercase;">
+            SEQUENCE STEP ${msg.sequenceStepNumber} OUTREACH
+          </span>
+          <h2 style="font-size: 19px; font-weight: 800; color: #FFFFFF; margin: 4px 0 6px;">
+            ${escapeHtml(msg.subject)}
+          </h2>
+        </div>
+        <div>
+          ${deliveryStatusHtml}
+        </div>
+      </div>
+
+      <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-hairline); border-radius: 8px; padding: 12px 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+        <div>
+          <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">PROSPECT RECIPIENT</div>
+          <div style="font-size: 13px; font-weight: 600; color: #FFF;">
+            ${escapeHtml(msg.leadContactName || 'Executive Decision Maker')}
+          </div>
+          <div style="font-size: 11px; color: var(--accent-cyan); font-family: var(--font-mono);">
+            ${escapeHtml(msg.leadEmail || '')}
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">COMPANY & INDUSTRY</div>
+          <div style="font-size: 13px; font-weight: 600; color: #FFF;">
+            ${escapeHtml(msg.leadCompanyName || 'Company')}
+          </div>
+          <div style="font-size: 11px; color: var(--text-secondary);">
+            ${escapeHtml(msg.leadIndustry || '')} ${msg.leadCountry ? `• ${escapeHtml(msg.leadCountry)}` : ''}
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: flex-end;">
+          ${msg.leadId ? `
+            <button class="btn btn-secondary btn-sm" onclick="openLeadDrawer('${msg.leadId}')">
+              <span>👤</span> View Lead in CRM
+            </button>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px;">
+        EMAIL BODY COPY
+      </span>
+      <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(decodeURIComponent('${encodeURIComponent(msg.body)}')); showToast('Copied email body to clipboard!', 'info');" title="Copy text to clipboard">
+        📋 Copy Copy
+      </button>
+    </div>
+
+    <div style="background: rgba(13, 17, 26, 0.7); border: 1px solid var(--border-hairline); border-radius: 10px; padding: 22px; font-size: 13px; line-height: 1.7; color: #E2E8F0; white-space: pre-wrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);">
+      ${escapeHtml(msg.body)}
+    </div>
+  `;
 }
 
 // --- Inbound Inbox Tab ---

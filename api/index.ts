@@ -395,7 +395,9 @@ app.get('/api/sequences', async (req: Request, res: Response) => {
 // --- Messages ---
 app.get('/api/messages', async (req: Request, res: Response) => {
   try {
-    const messages = await neonDb.getRecentMessages(100);
+    const status = req.query.status as string | undefined;
+    const limit = Number(req.query.limit) || 100;
+    const messages = await neonDb.getRecentMessages(limit, status);
     res.json({ success: true, messages });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });

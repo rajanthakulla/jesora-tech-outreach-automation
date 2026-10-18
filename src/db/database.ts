@@ -786,8 +786,26 @@ export class AppDatabase {
     `).run(leadId);
   }
 
-  public getRecentMessages(limit: number = 100): OutreachMessage[] {
-    const rows = this.db.prepare('SELECT * FROM messages ORDER BY scheduled_for DESC LIMIT ?').all(limit) as any[];
+  public getRecentMessages(limit: number = 100, filterStatus?: string): OutreachMessage[] {
+    let sql = `
+      SELECT m.*, 
+             l.company_name as lead_company_name, 
+             l.contact_name as lead_contact_name, 
+             l.email as lead_email, 
+             l.industry as lead_industry,
+             l.country as lead_country
+      FROM messages m
+      LEFT JOIN leads l ON m.lead_id = l.id
+    `;
+    const params: any[] = [];
+    if (filterStatus && filterStatus !== 'all') {
+      sql += ' WHERE m.status = ? ';
+      params.push(filterStatus);
+    }
+    sql += ' ORDER BY COALESCE(m.sent_at, m.scheduled_for, m.created_at) DESC LIMIT ? ';
+    params.push(limit);
+
+    const rows = this.db.prepare(sql).all(...params) as any[];
     return rows.map(r => ({
       id: r.id,
       leadId: r.lead_id,
@@ -802,7 +820,12 @@ export class AppDatabase {
       openedAt: r.opened_at || undefined,
       repliedAt: r.replied_at || undefined,
       errorMessage: r.error_message || undefined,
-      createdAt: r.created_at
+      createdAt: r.created_at,
+      leadCompanyName: r.lead_company_name || undefined,
+      leadContactName: r.lead_contact_name || undefined,
+      leadEmail: r.lead_email || undefined,
+      leadIndustry: r.lead_industry || undefined,
+      leadCountry: r.lead_country || undefined
     }));
   }
 

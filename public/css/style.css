@@ -457,12 +457,35 @@ body.dark-theme {
   padding: 20px 22px;
   position: relative;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  transition: transform 0.2s var(--ease-elastic), border-color 0.2s ease;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.2s var(--ease-elastic), border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .bento-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-3px);
+  border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.4), 0 0 16px -2px rgba(99, 102, 241, 0.15);
+}
+
+.bento-card:active {
+  transform: translateY(0) scale(0.985);
+}
+
+.bento-nav-hint {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-indigo-light);
+  opacity: 0.6;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.bento-card:hover .bento-nav-hint {
+  opacity: 1;
+  transform: translateX(3px);
+  color: var(--accent-cyan);
 }
 
 .bento-card-main {

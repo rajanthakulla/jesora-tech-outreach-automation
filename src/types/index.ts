@@ -115,6 +115,11 @@ export interface OutreachMessage {
   repliedAt?: string;
   errorMessage?: string;
   createdAt: string;
+  leadCompanyName?: string;
+  leadContactName?: string;
+  leadEmail?: string;
+  leadIndustry?: string;
+  leadCountry?: string;
 }
 
 export type ReplySentiment =

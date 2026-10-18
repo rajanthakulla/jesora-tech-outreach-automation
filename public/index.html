@@ -59,6 +59,14 @@
           <span class="nav-counter" id="tab-lead-count">0</span>
         </button>
 
+        <button class="nav-item" data-tab="outbox">
+          <span class="nav-item-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+          </span>
+          <span class="nav-item-text">Emails Dispatched</span>
+          <span class="nav-counter counter-emerald" id="tab-outbox-count">0</span>
+        </button>
+
         <button class="nav-item" data-tab="inbox">
           <span class="nav-item-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>
@@ -156,49 +164,49 @@
           
           <!-- Bento Metric Deck -->
           <div class="bento-metric-deck">
-            <div class="bento-card bento-card-main">
+            <div class="bento-card bento-card-main" data-nav="leads" role="button" tabindex="0" title="Click to view all Pipeline Leads in CRM">
               <div class="bento-card-header">
                 <span class="bento-label">TOTAL PIPELINE LEADS</span>
                 <span class="bento-badge" id="kpi-scouted-leads">+0 scouted</span>
               </div>
               <div class="bento-metric-number" id="kpi-total-leads">0</div>
-              <div class="bento-caption">High-fit prospects sourced & verified</div>
+              <div class="bento-caption">High-fit prospects sourced & verified <span class="bento-nav-hint">View Leads ➔</span></div>
             </div>
 
-            <div class="bento-card">
+            <div class="bento-card" data-nav="outbox" role="button" tabindex="0" title="Click to view all Dispatched Emails & Outbox Copy">
               <div class="bento-card-header">
                 <span class="bento-label">EMAILS DISPATCHED</span>
                 <span class="bento-icon">📤</span>
               </div>
               <div class="bento-metric-number" id="kpi-emails-sent">0</div>
-              <div class="bento-caption" id="kpi-contacted-leads">0 contacted &bull; Paced</div>
+              <div class="bento-caption" id="kpi-contacted-leads">0 contacted &bull; Paced <span class="bento-nav-hint">View Outbox ➔</span></div>
             </div>
 
-            <div class="bento-card">
+            <div class="bento-card" data-nav="inbox" role="button" tabindex="0" title="Click to view Inbound Responses & AI Sentiment">
               <div class="bento-card-header">
                 <span class="bento-label">REPLY ENGAGEMENT</span>
                 <span class="bento-pill-green" id="kpi-reply-rate">0.0%</span>
               </div>
               <div class="bento-metric-number" id="kpi-replies-count">0</div>
-              <div class="bento-caption">Inbound responses received</div>
+              <div class="bento-caption">Inbound responses received <span class="bento-nav-hint">View Inbox ➔</span></div>
             </div>
 
-            <div class="bento-card highlight-gold">
+            <div class="bento-card highlight-gold" data-nav="meetings" role="button" tabindex="0" title="Click to view Booked Discovery Calls">
               <div class="bento-card-header">
                 <span class="bento-label">MEETINGS BOOKED</span>
                 <span class="bento-pill-gold" id="kpi-conv-rate">0.0%</span>
               </div>
               <div class="bento-metric-number text-amber" id="kpi-meetings-booked">0</div>
-              <div class="bento-caption">Discovery calls scheduled</div>
+              <div class="bento-caption">Discovery calls scheduled <span class="bento-nav-hint">View Calls ➔</span></div>
             </div>
 
-            <div class="bento-card bento-pipeline-card">
+            <div class="bento-card bento-pipeline-card" data-nav="campaigns" role="button" tabindex="0" title="Click to view Target Campaigns & Pipeline Value">
               <div class="bento-card-header">
                 <span class="bento-label">EST. PIPELINE VALUE</span>
                 <span class="bento-icon">💎</span>
               </div>
               <div class="bento-metric-number text-gradient-indigo" id="kpi-pipeline-value">$0</div>
-              <div class="bento-caption">Web, SaaS & ERP contracts</div>
+              <div class="bento-caption">Web, SaaS & ERP contracts <span class="bento-nav-hint">View Campaigns ➔</span></div>
             </div>
           </div>
 
@@ -305,6 +313,56 @@
                     <!-- Populated dynamically -->
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB: DISPATCHED OUTBOX -->
+        <section class="tab-panel" id="tab-outbox">
+          <div class="view-header-strip">
+            <div>
+              <h2 class="view-title">Dispatched Emails & Live Outbox</h2>
+              <p class="view-subtitle">Chronological record of outreach pitches dispatched to decision-makers via SMTP with complete subject & body copy.</p>
+            </div>
+            <div class="strip-actions">
+              <span class="subtle-chip" id="outbox-count-badge">0 Dispatched</span>
+              <button class="btn btn-secondary btn-sm" id="btn-refresh-outbox" title="Refresh outbox log">
+                <span>🔄</span> Refresh
+              </button>
+            </div>
+          </div>
+
+          <div class="filter-action-bar">
+            <div class="search-input-wrapper">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" id="outbox-search-input" placeholder="Search dispatched emails by company, contact, email, or subject...">
+            </div>
+            
+            <div class="segment-filter-tabs" id="outbox-status-filters">
+              <button class="segment-tab active" data-filter="all">All Outreach</button>
+              <button class="segment-tab" data-filter="sent">Sent via SMTP 📤</button>
+              <button class="segment-tab" data-filter="scheduled">Scheduled ⏳</button>
+            </div>
+          </div>
+
+          <div class="inbox-split-deck">
+            <div class="inbox-thread-sidebar double-bezel-card">
+              <div class="card-inner-core no-padding flex-col">
+                <div class="thread-list-header">OUTREACH MESSAGES LOG</div>
+                <div class="inbox-list" id="outbox-list-container">
+                  <!-- Populated dynamically via JS -->
+                </div>
+              </div>
+            </div>
+
+            <div class="inbox-message-viewport double-bezel-card">
+              <div class="card-inner-core" id="outbox-viewer-container">
+                <div class="empty-state">
+                  <span class="empty-icon">📤</span>
+                  <h3>Select a dispatched message</h3>
+                  <p>Click on any message from the left panel to inspect the full subject, body copy, recipient details, and delivery timestamps.</p>
+                </div>
               </div>
             </div>
           </div>

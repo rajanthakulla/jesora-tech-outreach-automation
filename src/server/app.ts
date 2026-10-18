@@ -288,7 +288,9 @@ export function createServer(orchestrator: Orchestrator) {
 
   // --- Messages ---
   app.get('/api/messages', (req: Request, res: Response) => {
-    const rows = db.getRecentMessages(100);
+    const status = req.query.status as string | undefined;
+    const limit = Number(req.query.limit) || 100;
+    const rows = db.getRecentMessages(limit, status);
     res.json({ success: true, messages: rows });
   });
 
