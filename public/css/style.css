@@ -88,11 +88,18 @@ body.dark-theme {
   align-items: center;
   gap: 12px;
   text-decoration: none;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+  cursor: pointer;
+  user-select: none;
 }
 
 .brand-block:hover {
-  opacity: 0.9;
+  opacity: 0.95;
+  transform: translateY(-1px);
+}
+
+.brand-block:active {
+  transform: translateY(0);
 }
 
 .brand-monogram {
@@ -342,6 +349,12 @@ body.dark-theme {
 .breadcrumb-root {
   font-weight: 600;
   color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.breadcrumb-root:hover {
+  color: #FFFFFF;
 }
 
 .breadcrumb-separator {

@@ -51,6 +51,27 @@ function initNavigation() {
     });
   });
 
+  // Top-left Brand & Breadcrumb navigation to Overview
+  const brandLink = document.getElementById('brand-overview-link');
+  if (brandLink) {
+    brandLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      setActiveTab('overview');
+      const scroller = document.querySelector('.viewport-scroller');
+      if (scroller) scroller.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
+  const breadcrumbRoot = document.getElementById('breadcrumb-overview-link');
+  if (breadcrumbRoot) {
+    breadcrumbRoot.addEventListener('click', (e) => {
+      e.preventDefault();
+      setActiveTab('overview');
+      const scroller = document.querySelector('.viewport-scroller');
+      if (scroller) scroller.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
   // Wire up Bento Metric Deck cards to navigate to their respective sections
   const bentoCards = document.querySelectorAll('.bento-card[data-nav]');
   bentoCards.forEach(card => {
