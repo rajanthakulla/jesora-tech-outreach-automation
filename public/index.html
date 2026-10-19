@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=3.1">
+  <link rel="stylesheet" href="/css/style.css?v=3.2">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%200%22%20100%22%20100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
 </head>
 <body class="white-theme">
@@ -321,7 +321,7 @@
                       <th>Tech Gaps & Pain Points</th>
                       <th>Outreach Status</th>
                       <th>Next Step</th>
-                      <th class="text-right">Actions</th>
+                      <th class="text-right" style="width: 90px; min-width: 90px;">Actions</th>
                     </tr>
                   </thead>
                   <tbody id="leads-table-body">
@@ -373,10 +373,11 @@
 
             <div class="inbox-message-viewport double-bezel-card">
               <div class="card-inner-core" id="outbox-viewer-container">
-                <div class="empty-state">
-                  <span class="empty-icon">📤</span>
-                  <h3>Select a dispatched message</h3>
-                  <p>Click on any message from the left panel to inspect the full subject, body copy, recipient details, and delivery timestamps.</p>
+                <div class="empty-state-telemetry">
+                  <div class="empty-icon-frame">📤</div>
+                  <div class="empty-telemetry-tag">[ AWAITING SELECTION ]</div>
+                  <h3 class="empty-title">Select an Outreach Pitch</h3>
+                  <p class="empty-desc">Click on any dispatched message from the left sidebar to inspect the full subject, sequence step, recipient details, and exact copy.</p>
                 </div>
               </div>
             </div>
@@ -409,10 +410,11 @@
 
             <div class="inbox-message-viewport double-bezel-card">
               <div class="card-inner-core" id="inbox-viewer-container">
-                <div class="empty-state">
-                  <span class="empty-icon">📥</span>
-                  <h3>Select a conversation</h3>
-                  <p>Click on an incoming reply from the left panel to review the dialogue, AI sentiment analysis, and Jesora Tech tailored response.</p>
+                <div class="empty-state-telemetry">
+                  <div class="empty-icon-frame">📥</div>
+                  <div class="empty-telemetry-tag">[ AWAITING CONVERSATION ]</div>
+                  <h3 class="empty-title">Select an Inbound Thread</h3>
+                  <p class="empty-desc">Click on any prospect reply from the left sidebar to review incoming dialogue, AI sentiment categorization, and suggested response blueprints.</p>
                 </div>
               </div>
             </div>
@@ -924,6 +926,6 @@ Apex Dental,Dr. Arthur,arthur@apexdental.co.uk,https://apexdental.co.uk,42 Harle
   <!-- Notification Toast Container -->
   <div class="toast-hub" id="toast-container"></div>
 
-  <script src="/js/app.js?v=3.1"></script>
+  <script src="/js/app.js?v=3.2"></script>
 </body>
 </html>
