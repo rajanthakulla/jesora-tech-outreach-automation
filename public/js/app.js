@@ -34,12 +34,48 @@ document.addEventListener('DOMContentLoaded', () => {
   initActions();
   loadAllData();
   initJesoraVoiceAssistant();
+  initThemeToggle();
 
   // Periodic fallback refresh every 15s
   setInterval(() => {
     loadStatus();
   }, 15000);
 });
+
+// --- Theme Toggle (White / Dark) ---
+function initThemeToggle() {
+  const btn = document.getElementById('btn-theme-toggle');
+  const icon = document.getElementById('theme-toggle-icon');
+  const label = document.getElementById('theme-toggle-label');
+
+  // Default to white theme
+  const savedTheme = localStorage.getItem('jesora-theme') || 'white';
+  applyTheme(savedTheme);
+
+  if (btn) {
+    btn.addEventListener('click', () => {
+      const isWhite = document.body.classList.contains('white-theme');
+      const nextTheme = isWhite ? 'dark' : 'white';
+      applyTheme(nextTheme);
+    });
+  }
+
+  function applyTheme(theme) {
+    if (theme === 'dark') {
+      document.body.classList.remove('white-theme');
+      document.body.classList.add('dark-theme');
+      if (icon) icon.textContent = '☀️';
+      if (label) label.textContent = 'White Theme';
+      localStorage.setItem('jesora-theme', 'dark');
+    } else {
+      document.body.classList.remove('dark-theme');
+      document.body.classList.add('white-theme');
+      if (icon) icon.textContent = '🌙';
+      if (label) label.textContent = 'Dark Theme';
+      localStorage.setItem('jesora-theme', 'white');
+    }
+  }
+}
 
 // --- Navigation Tabs ---
 function initNavigation() {
