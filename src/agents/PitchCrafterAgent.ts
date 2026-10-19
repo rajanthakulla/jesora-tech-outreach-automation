@@ -309,6 +309,13 @@ export class PitchCrafterAgent extends BaseAgent {
       }
     }
 
+    // Enforce tech-literate, non-jargon vocabulary across all templates and AI responses
+    body = body
+      .replace(/\bTTFB\b/gi, 'page response delays')
+      .replace(/\bTime-To-First-Byte\b/gi, 'server response time')
+      .replace(/\bCSP\b/gi, 'security headers')
+      .replace(/\bHSTS\b/gi, 'secure transport policy');
+
     // Schedule: Stagger sends across minutes
     const scheduledDate = new Date(Date.now() + Math.floor(Math.random() * 15 + 2) * 60 * 1000);
 
@@ -576,6 +583,12 @@ You MUST use the WEB_DEV_TEMPLATE ("Where your website could improve").
 Focus on modernizing, speeding up, and improving conversion on their existing website.
 NEVER state or imply that they lack an official website.`;
 
+    const sanitizedPainPoints = (lead.painPoints || 'Digital presence & workflow modernization')
+      .replace(/\bTTFB\b/gi, 'page response delays')
+      .replace(/\bTime-To-First-Byte\b/gi, 'server response time')
+      .replace(/\bCSP\b/gi, 'security headers')
+      .replace(/\bHSTS\b/gi, 'secure transport policy');
+
     const prompt = `You are Rajan Thakulla, Lead Engineer at JESORA TECH (jesoratech.com).
 Your task is to write a highly tailored, professional B2B outreach email to a prospective client.
 
@@ -585,7 +598,7 @@ PROSPECT DETAILS:
 • Industry: ${lead.industry}
 • City: ${city}
 • Website: ${hasNoWebsite ? 'None (Social / Directory Only)' : lead.website}
-• Context: ${lead.painPoints || 'Digital presence & workflow modernization'}
+• Context: ${sanitizedPainPoints}
 
 PITCH TRACK: ${track.toUpperCase()}
 
@@ -647,8 +660,26 @@ Return JSON with exact keys:
         const cleaned = text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
         const parsed = JSON.parse(cleaned);
         if (parsed.subject && parsed.body && parsed.body.includes('JESORA TECH')) {
+          let cleanBody = parsed.body;
+          if (track === 'web_development') {
+            const expectedImproveHeader = hasNoWebsite
+              ? 'Where an official website would make an immediate difference'
+              : 'Where your website could improve';
+            if (!cleanBody.includes(expectedImproveHeader)) {
+              cleanBody = cleanBody.replace(/Where (your|an official) website (could|can|would) (improve|make an immediate difference)/i, expectedImproveHeader);
+            }
+            if (!cleanBody.includes('How JESORA TECH can help')) {
+              cleanBody = cleanBody.replace(/How JESORA TECH (can|will|could) help/i, 'How JESORA TECH can help');
+            }
+          }
+          cleanBody = cleanBody
+            .replace(/\bTTFB\b/gi, 'page response delays')
+            .replace(/\bTime-To-First-Byte\b/gi, 'server response time')
+            .replace(/\bCSP\b/gi, 'security headers')
+            .replace(/\bHSTS\b/gi, 'secure transport policy');
+
           this.log('success', `✨ AI tailored ${track} pitch for ${lead.companyName} using exact format.`);
-          return { subject: parsed.subject, body: parsed.body };
+          return { subject: parsed.subject, body: cleanBody };
         }
       } catch (innerErr: any) {
         this.log('warn', `Model ${currentModel} error: ${innerErr.message}`);

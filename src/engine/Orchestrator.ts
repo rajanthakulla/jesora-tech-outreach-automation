@@ -130,42 +130,40 @@ export class Orchestrator {
     try {
       this.notificationSentinel.log('info', `Starting Cycle #${this.cycleCount} of 24x7 Orchestrator...`);
 
+      const runAgentSafely = async (name: string, fn: () => Promise<{ actionsTaken: number; message: string }>) => {
+        try {
+          const res = await fn();
+          totalActions += res.actionsTaken || 0;
+          cycleLog.push(`${name}: ${res.message || 'Done'}`);
+        } catch (agentErr: any) {
+          const errorMsg = agentErr?.message || String(agentErr);
+          this.notificationSentinel.log('warn', `${name} encountered a non-fatal issue: ${errorMsg}`);
+          cycleLog.push(`${name} (Recovered): ${errorMsg}`);
+        }
+      };
+
       // 1. Inbox Sentinel (Highest Priority: Scan incoming mail & hot leads first)
-      const inboxRes = await this.inboxMonitor.run();
-      totalActions += inboxRes.actionsTaken;
-      cycleLog.push(`Inbox Sentinel: ${inboxRes.message}`);
+      await runAgentSafely('Inbox Sentinel', () => this.inboxMonitor.run());
 
       // 2. Meeting Closer (Schedule meetings for newly replied prospects)
-      const meetingRes = await this.meetingCloser.run();
-      totalActions += meetingRes.actionsTaken;
-      cycleLog.push(`Meeting Closer: ${meetingRes.message}`);
+      await runAgentSafely('Meeting Closer', () => this.meetingCloser.run());
 
       // 3. Lead Scout (Prospect new clients with 100% verified name, email & physical address)
-      const scoutRes = await this.leadScout.run();
-      totalActions += scoutRes.actionsTaken;
-      cycleLog.push(`Lead Scout: ${scoutRes.message}`);
+      await runAgentSafely('Lead Scout', () => this.leadScout.run());
 
       // 4. Website Verifier (Probe live domain presence; discard dead/parked domains)
-      const verifierRes = await this.websiteVerifier.run();
-      totalActions += verifierRes.actionsTaken;
-      cycleLog.push(`Website Verifier: ${verifierRes.message}`);
+      await runAgentSafely('Website Verifier', () => this.websiteVerifier.run());
 
       // 5. Site Flaw Auditor (Run deep technical & conversion flaw diagnostics)
-      const auditorRes = await this.siteAuditor.run();
-      totalActions += auditorRes.actionsTaken;
-      cycleLog.push(`Site Flaw Auditor: ${auditorRes.message}`);
+      await runAgentSafely('Site Flaw Auditor', () => this.siteAuditor.run());
 
       // 6. Pitch Crafter (Generate tailored cold outreach driven by flaw report)
-      const pitchRes = await this.pitchCrafter.run();
-      totalActions += pitchRes.actionsTaken;
-      cycleLog.push(`Pitch Crafter: ${pitchRes.message}`);
+      await runAgentSafely('Pitch Crafter', () => this.pitchCrafter.run());
 
       // 7. Dispatcher (Deliver queued emails respecting pacing)
-      const dispatchRes = await this.dispatcher.run();
-      totalActions += dispatchRes.actionsTaken;
-      cycleLog.push(`Dispatcher: ${dispatchRes.message}`);
+      await runAgentSafely('Dispatcher', () => this.dispatcher.run());
 
-      // 6. Broadcast updated state
+      // 8. Broadcast updated state
       this.notificationSentinel.broadcast('cycle_completed', {
         cycleCount: this.cycleCount,
         totalActions,
@@ -176,7 +174,7 @@ export class Orchestrator {
       this.notificationSentinel.log('success', summary, { details: cycleLog });
       return { summary, actions: totalActions };
     } catch (err: any) {
-      this.notificationSentinel.log('error', `Cycle #${this.cycleCount} failed: ${err.message}`);
+      this.notificationSentinel.log('error', `Cycle #${this.cycleCount} fatal error: ${err.message}`);
       return { summary: `Cycle error: ${err.message}`, actions: totalActions };
     } finally {
       this.isCycleActive = false;
