@@ -324,6 +324,11 @@ function renderKPIs(stats) {
   if (badgeCamp) badgeCamp.textContent = `${stats.activeCampaigns || 0} Campaigns`;
 }
 
+function truncate(str, maxLen = 30) {
+  if (!str) return '';
+  return str.length > maxLen ? str.slice(0, maxLen).trim() + '...' : str;
+}
+
 function renderAgents(agents) {
   const container = document.getElementById('agents-grid-container');
   if (!container) return;
@@ -348,8 +353,8 @@ function renderAgents(agents) {
           <div class="agent-avatar-cluster">
             <div class="agent-glyph-icon">${icon}</div>
             <div class="agent-headline">
-              <span class="agent-callsign">${agent.name}</span>
-              <span class="agent-designation">${agent.role}</span>
+              <span class="agent-callsign" title="${agent.name}">${agent.name}</span>
+              <span class="agent-designation" title="${agent.role}">${agent.role}</span>
             </div>
           </div>
           <span class="agent-status-orb ${agent.status}">${agent.status}</span>
@@ -358,8 +363,8 @@ function renderAgents(agents) {
         <p class="agent-summary-copy">${agent.description}</p>
 
         <div class="agent-live-chip">
-          <span class="live-chip-label">ACTIVE TASK</span>
-          <div class="live-chip-text" title="${agent.currentTask}">${agent.currentTask || 'Standing by'}</div>
+          <span class="live-dot-pulse"></span>
+          <span class="live-chip-text" title="${agent.currentTask}">${agent.currentTask || 'Standing by'}</span>
         </div>
 
         <div class="agent-stats-bar">
@@ -378,12 +383,12 @@ function renderAgents(agents) {
         </div>
 
         <div class="agent-action-buttons">
-          <button class="btn btn-xs btn-primary" onclick="runSingleAgent('${agent.agentId}')">
+          <button class="btn btn-xs btn-primary agent-btn-run" onclick="runSingleAgent('${agent.agentId}')">
             <span>⚡</span> Run Now
           </button>
           ${isPaused 
-            ? `<button class="btn btn-xs btn-secondary" onclick="togglePauseAgent('${agent.agentId}', 'resume')">Resume</button>` 
-            : `<button class="btn btn-xs btn-ghost" onclick="togglePauseAgent('${agent.agentId}', 'pause')">Pause</button>`
+            ? `<button class="btn btn-xs btn-secondary agent-btn-toggle" onclick="togglePauseAgent('${agent.agentId}', 'resume')">Resume</button>` 
+            : `<button class="btn btn-xs btn-secondary agent-btn-toggle" onclick="togglePauseAgent('${agent.agentId}', 'pause')">Pause</button>`
           }
         </div>
       </div>
@@ -478,6 +483,23 @@ function renderLeadsTable() {
   tbody.innerHTML = leads.map(l => {
     const scoreClass = l.score >= 90 ? 'score-high' : 'score-mid';
     const statusClass = `status-${l.status}`;
+
+    const techTagHtml = l.techStack 
+      ? `<div class="tech-stack-tag" title="${escapeHtml(l.techStack)}">${escapeHtml(truncate(l.techStack, 30))}</div>`
+      : `<div class="tech-stack-tag-pending">Pending Inspection</div>`;
+
+    const flawPillsHtml = l.flawReport ? `
+      <div class="flaw-pill-row">
+        <span class="flaw-pill score" title="Technical Health Score">⚡ ${l.flawReport.performanceScore}/100</span>
+        <span class="flaw-pill speed" title="TTI Latency">${l.flawReport.loadLatencyMs}ms</span>
+        <span class="flaw-pill design" title="UI/UX Visual Score">🎨 ${l.flawReport.designScore || 45}/100</span>
+      </div>
+    ` : '';
+
+    const painPillHtml = l.painPoints 
+      ? `<div class="pain-point-pill" title="${escapeHtml(l.painPoints)}">⚠️ ${escapeHtml(truncate(l.painPoints, 36))}</div>`
+      : '';
+
     return `
       <tr>
         <td>
@@ -487,15 +509,15 @@ function renderLeadsTable() {
             <a href="${escapeHtml(l.website)}" target="_blank" class="lead-entity-link">
               ${escapeHtml(l.website.replace('https://', ''))} ↗
             </a>
-            ${l.address ? `<div style="font-size: 11px; color: var(--accent-cyan); margin-top: 3px; display: flex; align-items: center; gap: 4px;">📍 <span>${escapeHtml(l.address)}</span></div>` : ''}
+            ${l.address ? `<div style="font-size: 11px; color: var(--accent-cyan); margin-top: 3px; display: flex; align-items: center; gap: 4px;">📍 <span>${escapeHtml(truncate(l.address, 38))}</span></div>` : ''}
           </div>
         </td>
         <td>
-          <div style="font-weight: 600; color: #E2E8F0;">${escapeHtml(l.industry)}</div>
+          <div style="font-weight: 600; color: var(--text-primary); font-size: 12.5px;">${escapeHtml(l.industry)}</div>
           <span style="font-size: 11px; color: var(--text-muted);">${escapeHtml(l.country)}</span>
           ${l.websiteVerified !== undefined ? `
             <div style="margin-top: 4px;">
-              <span style="font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; ${l.websiteVerified ? 'background: rgba(16, 185, 129, 0.15); color: #34D399;' : 'background: rgba(239, 68, 68, 0.15); color: #F87171;'}">
+              <span style="font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; ${l.websiteVerified ? 'background: rgba(16, 185, 129, 0.12); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.25);' : 'background: rgba(239, 68, 68, 0.12); color: var(--accent-rose); border: 1px solid rgba(239, 68, 68, 0.25);'}">
                 ${l.websiteVerified ? '✓ Live Website' : '✕ Discarded (No Site)'}
               </span>
             </div>` : ''}
@@ -503,18 +525,10 @@ function renderLeadsTable() {
         <td>
           <span class="score-badge ${scoreClass}">${l.score}</span>
         </td>
-        <td style="max-width: 260px;">
-          <div style="font-size: 11px; color: #CBD5E1; line-height: 1.4;">${escapeHtml(l.techStack || 'Uninspected')}</div>
-          ${l.flawReport ? `
-            <div style="font-size: 10px; font-weight: 600; margin-top: 4px; background: rgba(168, 85, 247, 0.1); padding: 3px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-              <span style="color: #C084FC;">🔬 Tech: ${l.flawReport.performanceScore}/100</span>
-              <span style="color: #64748B;">•</span>
-              <span style="color: #F472B6;">🎨 Design: ${l.flawReport.designScore || 45}/100</span>
-              <span style="color: #64748B;">•</span>
-              <span style="color: #94A3B8;">${l.flawReport.loadLatencyMs}ms</span>
-            </div>
-          ` : ''}
-          ${l.painPoints ? `<div style="font-size: 11px; color: var(--accent-amber); margin-top: 3px;">⚠️ ${escapeHtml(l.painPoints)}</div>` : ''}
+        <td style="max-width: 280px;">
+          ${techTagHtml}
+          ${flawPillsHtml}
+          ${painPillHtml}
         </td>
         <td>
           <span class="status-badge ${statusClass}">${l.status.replace('_', ' ')}</span>
@@ -613,7 +627,7 @@ function renderOutboxList() {
     return `
       <div class="inbox-thread-card ${isActive}" onclick="selectOutboxMessage('${m.id}')">
         <div class="thread-card-top">
-          <span class="thread-sender-name" style="color: #FFF; font-size: 13px; font-weight: 700;">
+          <span class="thread-sender-name" style="color: var(--text-primary); font-size: 13px; font-weight: 700;">
             ${escapeHtml(m.leadCompanyName || 'Prospective Client')}
           </span>
           <span class="thread-time-label">${timeDisplay}</span>
@@ -621,7 +635,7 @@ function renderOutboxList() {
         <div style="font-size: 11px; color: var(--accent-cyan); font-family: var(--font-mono); margin-bottom: 4px;">
           ${escapeHtml(m.leadEmail || '')}
         </div>
-        <div class="thread-subject-line" style="font-size: 12px; margin-bottom: 5px; color: #E2E8F0; font-weight: 600;">
+        <div class="thread-subject-line" style="font-size: 12px; margin-bottom: 5px; color: var(--text-primary); font-weight: 600;">
           ${escapeHtml(m.subject)}
         </div>
         <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 4px;">
@@ -646,10 +660,10 @@ function selectOutboxMessage(msgId) {
 
   const isSent = msg.status === 'sent';
   const deliveryStatusHtml = isSent
-    ? `<span style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34D399; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px;">
+    ? `<span style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--accent-emerald); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px;">
         ✓ Dispatched via Gmail SMTP (${msg.sentAt ? new Date(msg.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' }) : 'Delivered'})
        </span>`
-    : `<span style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #FBBF24; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px;">
+    : `<span style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); color: var(--accent-amber); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px;">
         ⏳ Scheduled for automated dispatch
        </span>`;
 
@@ -660,7 +674,7 @@ function selectOutboxMessage(msgId) {
           <span style="font-size: 10px; font-weight: 800; color: var(--accent-indigo-light); letter-spacing: 0.8px; text-transform: uppercase;">
             SEQUENCE STEP ${msg.sequenceStepNumber} OUTREACH
           </span>
-          <h2 style="font-size: 19px; font-weight: 800; color: #FFFFFF; margin: 4px 0 6px;">
+          <h2 style="font-size: 19px; font-weight: 800; color: var(--text-primary); margin: 4px 0 6px;">
             ${escapeHtml(msg.subject)}
           </h2>
         </div>
@@ -669,10 +683,10 @@ function selectOutboxMessage(msgId) {
         </div>
       </div>
 
-      <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-hairline); border-radius: 8px; padding: 12px 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+      <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-hairline); border-radius: 8px; padding: 12px 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
         <div>
           <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">PROSPECT RECIPIENT</div>
-          <div style="font-size: 13px; font-weight: 600; color: #FFF;">
+          <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">
             ${escapeHtml(msg.leadContactName || 'Executive Decision Maker')}
           </div>
           <div style="font-size: 11px; color: var(--accent-cyan); font-family: var(--font-mono);">
@@ -682,7 +696,7 @@ function selectOutboxMessage(msgId) {
 
         <div>
           <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">COMPANY & INDUSTRY</div>
-          <div style="font-size: 13px; font-weight: 600; color: #FFF;">
+          <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">
             ${escapeHtml(msg.leadCompanyName || 'Company')}
           </div>
           <div style="font-size: 11px; color: var(--text-secondary);">
@@ -709,7 +723,7 @@ function selectOutboxMessage(msgId) {
       </button>
     </div>
 
-    <div style="background: rgba(13, 17, 26, 0.7); border: 1px solid var(--border-hairline); border-radius: 10px; padding: 22px; font-size: 13px; line-height: 1.7; color: #E2E8F0; white-space: pre-wrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);">
+    <div style="background: var(--bg-surface); border: 1px solid var(--border-hairline); border-radius: 10px; padding: 22px; font-size: 13px; line-height: 1.7; color: var(--text-primary); white-space: pre-wrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; box-shadow: var(--card-shadow);">
       ${escapeHtml(msg.body)}
     </div>
   `;
@@ -776,7 +790,7 @@ function selectReply(replyId) {
   viewer.innerHTML = `
     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px;">
       <div>
-        <h3 style="font-size: 18px; font-weight: 700; color: #FFF; margin-bottom: 4px;">${escapeHtml(reply.subject)}</h3>
+        <h3 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">${escapeHtml(reply.subject)}</h3>
         <div style="font-size: 13px; color: var(--text-secondary);">
           From: <strong>${escapeHtml(reply.fromEmail)}</strong> ${lead ? `(${escapeHtml(lead.companyName)})` : ''}
         </div>
@@ -786,17 +800,17 @@ function selectReply(replyId) {
       </span>
     </div>
 
-    <div style="background: rgba(99, 102, 241, 0.08); border-left: 3px solid var(--accent-indigo); padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 12px; color: #E2E8F0;">
+    <div style="background: rgba(99, 102, 241, 0.08); border-left: 3px solid var(--accent-indigo); padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 12px; color: var(--text-primary);">
       <strong>🤖 AI Summary:</strong> ${escapeHtml(reply.aiSummary)}
     </div>
 
-    <div class="inbound-dialogue-card">${escapeHtml(reply.body)}</div>
+    <div class="inbound-dialogue-card" style="background: var(--bg-surface); border: 1px solid var(--border-hairline); color: var(--text-primary); padding: 16px; border-radius: 8px; margin-bottom: 16px; line-height: 1.6;">${escapeHtml(reply.body)}</div>
 
     <div class="ai-reply-blueprint">
       <div class="ai-blueprint-header">
         <span>✨</span> AI Recommended Response (Jesora Tech Engineering Pitch):
       </div>
-      <div style="font-size: 13px; line-height: 1.6; color: #E2E8F0; white-space: pre-wrap; margin-bottom: 14px;">
+      <div style="font-size: 13px; line-height: 1.6; color: var(--text-primary); white-space: pre-wrap; margin-bottom: 14px;">
         ${escapeHtml(reply.aiSuggestedReply)}
       </div>
       <div style="display: flex; gap: 10px;">
@@ -834,7 +848,7 @@ function renderMeetings() {
       <div class="double-bezel-card" style="grid-column: span 2;">
         <div class="card-inner-core" style="padding: 60px 20px; text-align: center;">
           <div style="font-size: 40px; margin-bottom: 12px;">📅</div>
-          <h3 style="font-size: 18px; color: #FFF; margin-bottom: 6px;">No discovery calls booked yet</h3>
+          <h3 style="font-size: 18px; color: var(--text-primary); margin-bottom: 6px;">No discovery calls booked yet</h3>
           <p style="font-size: 13px; color: var(--text-secondary); max-width: 460px; margin: 0 auto 16px;">
             When an interested prospect replies or requests a meeting, the Meeting Closer Agent automatically reserves the slot and prepares the executive brief.
           </p>
@@ -854,13 +868,13 @@ function renderMeetings() {
     return `
       <div class="double-bezel-card meeting-card-container">
         <div class="card-inner-core">
-          <div style="font-size: 17px; font-weight: 700; color: #FFF; margin-bottom: 4px;">
+          <div style="font-size: 17px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">
             ${escapeHtml(lead ? lead.companyName : 'Discovery Call')}
           </div>
           <div class="meeting-time-chip">
             <span>🕒</span> ${dateFormatted} (${m.durationMinutes} mins)
           </div>
-          <div style="font-size: 12px; color: #CBD5E1; margin-bottom: 14px;">
+          <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 14px;">
             <strong>Agenda:</strong> ${escapeHtml(m.agenda)}
           </div>
           
@@ -903,7 +917,7 @@ function renderCampaigns() {
       <div class="card-inner-core">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
           <div>
-            <div style="font-size: 17px; font-weight: 700; color: #FFF;">${escapeHtml(c.name)}</div>
+            <div style="font-size: 17px; font-weight: 700; color: var(--text-primary);">${escapeHtml(c.name)}</div>
             <span style="font-size: 11px; color: var(--accent-cyan); font-family: var(--font-mono);">${escapeHtml(c.targetNiche)}</span>
           </div>
           <span class="agent-status-orb ${c.status}">${c.status}</span>
@@ -968,7 +982,7 @@ function renderSequences() {
       <div class="card-inner-core">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
           <div>
-            <h3 style="font-size: 18px; font-weight: 700; color: #FFF;">${escapeHtml(seq.name)}</h3>
+            <h3 style="font-size: 18px; font-weight: 700; color: var(--text-primary);">${escapeHtml(seq.name)}</h3>
             <p style="font-size: 13px; color: var(--text-secondary);">${escapeHtml(seq.description)}</p>
           </div>
           <span class="subtle-chip">${seq.steps.length} Touchpoints</span>
@@ -983,10 +997,10 @@ function renderSequences() {
                 </span>
                 <span style="font-size: 11px; color: var(--text-muted);">${escapeHtml(step.purpose)}</span>
               </div>
-              <div style="font-size: 13px; font-weight: 600; color: #FFF; margin-bottom: 6px;">
+              <div style="font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">
                 Subject: "${escapeHtml(step.subjectTemplate)}"
               </div>
-              <div style="font-size: 12px; line-height: 1.5; color: var(--text-secondary); white-space: pre-wrap; background: rgba(0, 0, 0, 0.3); padding: 12px; border-radius: 6px;">
+              <div style="font-size: 12px; line-height: 1.5; color: var(--text-secondary); white-space: pre-wrap; background: var(--bg-surface-elevated); border: 1px solid var(--border-hairline); padding: 12px; border-radius: 6px;">
                 ${escapeHtml(step.bodyTemplate)}
               </div>
             </div>
@@ -1163,17 +1177,17 @@ async function openLeadDrawer(leadId) {
     inner.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
         <div>
-          <h2 style="font-size: 20px; font-weight: 800; color: #FFF; margin-bottom: 4px;">${escapeHtml(lead.companyName)}</h2>
+          <h2 style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">${escapeHtml(lead.companyName)}</h2>
           <div style="font-size: 13px; color: var(--text-secondary);">${escapeHtml(lead.industry)} | ${escapeHtml(lead.country)}</div>
         </div>
         <button class="modal-close-btn" onclick="closeLeadDrawer()">&times;</button>
       </div>
 
-      <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-hairline); border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+      <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-hairline); border-radius: 10px; padding: 16px; margin-bottom: 20px;">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px;">
           <div>
             <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">CONTACT PERSON</div>
-            <div style="font-size: 14px; font-weight: 600; color: #FFF;">${escapeHtml(lead.contactName)}</div>
+            <div style="font-size: 14px; font-weight: 600; color: var(--text-primary);">${escapeHtml(lead.contactName)}</div>
             <div style="font-size: 11px; color: var(--text-secondary);">${escapeHtml(lead.contactTitle || 'Decision Maker')}</div>
           </div>
           <div>
@@ -1188,13 +1202,13 @@ async function openLeadDrawer(leadId) {
               <a href="${escapeHtml(lead.website)}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-indigo-light); font-size: 12px; text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
                 ${escapeHtml(lead.website)} ↗
               </a>
-              <div style="margin-top: 3px; font-size: 10px; font-weight: 700; color: #34D399;">
+              <div style="margin-top: 3px; font-size: 10px; font-weight: 700; color: var(--accent-emerald);">
                 ✓ Verified Active Live Website
               </div>` : `
-              <span style="color: #F59E0B; font-size: 12px; font-weight: 600;">
+              <span style="color: var(--accent-amber); font-size: 12px; font-weight: 600;">
                 📱 No Standalone Website (Social / Local Listing Only)
               </span>
-              <div style="margin-top: 3px; font-size: 10px; font-weight: 700; color: #F59E0B;">
+              <div style="margin-top: 3px; font-size: 10px; font-weight: 700; color: var(--accent-amber);">
                 ★ High-Priority Custom Web Build Candidate
               </div>`}
           </div>
@@ -1208,24 +1222,24 @@ async function openLeadDrawer(leadId) {
       </div>
 
       ${lead.flawReport ? `
-        <div style="background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+        <div style="background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.25); border-radius: 10px; padding: 16px; margin-bottom: 20px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 20px;">🔬</span>
               <div>
-                <h4 style="font-size: 13px; font-weight: 700; color: #E9D5FF; margin: 0;">Site & Visual Design Diagnostic Report</h4>
+                <h4 style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin: 0;">Site & Visual Design Diagnostic Report</h4>
                 <div style="font-size: 10px; color: var(--text-muted);">Audited ${formatTimeAgo(lead.flawReport.auditedAt)}</div>
               </div>
             </div>
             <div style="display: flex; gap: 16px; text-align: right;">
               <div>
-                <div style="font-size: 17px; font-weight: 800; color: ${lead.flawReport.performanceScore < 60 ? '#F87171' : '#FBBF24'};">
+                <div style="font-size: 17px; font-weight: 800; color: ${lead.flawReport.performanceScore < 60 ? 'var(--accent-rose)' : 'var(--accent-amber)'};">
                   ${lead.flawReport.performanceScore}/100
                 </div>
                 <div style="font-size: 10px; color: var(--text-muted);">Tech Health (${lead.flawReport.loadLatencyMs}ms)</div>
               </div>
-              <div style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 16px;">
-                <div style="font-size: 17px; font-weight: 800; color: ${(lead.flawReport.designScore || 45) < 60 ? '#F472B6' : '#60A5FA'};">
+              <div style="border-left: 1px solid var(--border-hairline); padding-left: 16px;">
+                <div style="font-size: 17px; font-weight: 800; color: ${(lead.flawReport.designScore || 45) < 60 ? '#DB2777' : 'var(--accent-cyan)'};">
                   ${lead.flawReport.designScore || 45}/100
                 </div>
                 <div style="font-size: 10px; color: var(--text-muted); text-transform: capitalize;">${lead.flawReport.visualHierarchyRating || 'Dated'} Design</div>
@@ -1235,32 +1249,32 @@ async function openLeadDrawer(leadId) {
 
           ${lead.flawReport.designFlaws && lead.flawReport.designFlaws.length > 0 ? `
             <div style="margin-bottom: 12px; background: rgba(236, 72, 153, 0.06); border: 1px solid rgba(236, 72, 153, 0.25); border-radius: 8px; padding: 10px 12px;">
-              <div style="font-size: 10px; font-weight: 700; color: #F472B6; text-transform: uppercase; margin-bottom: 5px; display: flex; align-items: center; gap: 6px;">
+              <div style="font-size: 10px; font-weight: 700; color: #DB2777; text-transform: uppercase; margin-bottom: 5px; display: flex; align-items: center; gap: 6px;">
                 <span>🎨</span> Visual & UI/UX Design Flaws
               </div>
-              <ul style="margin: 0; padding-left: 18px; font-size: 11px; color: #F1F5F9; line-height: 1.5;">
+              <ul style="margin: 0; padding-left: 18px; font-size: 11px; color: var(--text-primary); line-height: 1.5;">
                 ${lead.flawReport.designFlaws.map(df => `<li style="margin-bottom: 4px;">${escapeHtml(df)}</li>`).join('')}
               </ul>
             </div>
           ` : ''}
 
           <div style="margin-bottom: 12px;">
-            <div style="font-size: 10px; font-weight: 700; color: #FCA5A5; text-transform: uppercase; margin-bottom: 4px;">Critical Architectural Flaws</div>
-            <ul style="margin: 0; padding-left: 18px; font-size: 11px; color: #CBD5E1; line-height: 1.5;">
+            <div style="font-size: 10px; font-weight: 700; color: var(--accent-rose); text-transform: uppercase; margin-bottom: 4px;">Critical Architectural Flaws</div>
+            <ul style="margin: 0; padding-left: 18px; font-size: 11px; color: var(--text-secondary); line-height: 1.5;">
               ${lead.flawReport.criticalFlaws.map(f => `<li style="margin-bottom: 3px;">${escapeHtml(f)}</li>`).join('')}
             </ul>
           </div>
 
           <div style="margin-bottom: 12px;">
-            <div style="font-size: 10px; font-weight: 700; color: #FCD34D; text-transform: uppercase; margin-bottom: 4px;">Conversion Bottlenecks</div>
-            <ul style="margin: 0; padding-left: 18px; font-size: 11px; color: #CBD5E1; line-height: 1.5;">
+            <div style="font-size: 10px; font-weight: 700; color: var(--accent-amber); text-transform: uppercase; margin-bottom: 4px;">Conversion Bottlenecks</div>
+            <ul style="margin: 0; padding-left: 18px; font-size: 11px; color: var(--text-secondary); line-height: 1.5;">
               ${lead.flawReport.conversionBottlenecks.map(b => `<li style="margin-bottom: 3px;">${escapeHtml(b)}</li>`).join('')}
             </ul>
           </div>
 
           <div>
-            <div style="font-size: 10px; font-weight: 700; color: #86EFAC; text-transform: uppercase; margin-bottom: 4px;">Recommended Modernization Fixes</div>
-            <ul style="margin: 0; padding-left: 18px; font-size: 11px; color: #CBD5E1; line-height: 1.5;">
+            <div style="font-size: 10px; font-weight: 700; color: var(--accent-emerald); text-transform: uppercase; margin-bottom: 4px;">Recommended Modernization Fixes</div>
+            <ul style="margin: 0; padding-left: 18px; font-size: 11px; color: var(--text-secondary); line-height: 1.5;">
               ${lead.flawReport.recommendedFixes.map(fix => `<li style="margin-bottom: 3px;">${escapeHtml(fix)}</li>`).join('')}
             </ul>
           </div>
@@ -1268,29 +1282,29 @@ async function openLeadDrawer(leadId) {
       ` : ''}
 
       <div style="margin-bottom: 20px;">
-        <h4 style="font-size: 13px; font-weight: 700; color: #FFF; margin-bottom: 8px;">Technical Stack & Audit Findings</h4>
-        <div style="background: rgba(0, 0, 0, 0.35); padding: 12px; border-radius: 6px; font-size: 12px; line-height: 1.5; color: #CBD5E1;">
+        <h4 style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Technical Stack & Audit Findings</h4>
+        <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-hairline); padding: 12px; border-radius: 6px; font-size: 12px; line-height: 1.5; color: var(--text-primary);">
           ${escapeHtml(lead.techStack || 'No technical stack recorded.')}
         </div>
       </div>
 
       <div style="margin-bottom: 20px;">
-        <h4 style="font-size: 13px; font-weight: 700; color: #FFF; margin-bottom: 8px;">Pain Points & Opportunities</h4>
-        <div style="background: rgba(245, 158, 11, 0.08); border-left: 3px solid var(--accent-amber); padding: 12px; border-radius: 6px; font-size: 12px; line-height: 1.5; color: #FCD34D;">
+        <h4 style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Pain Points & Opportunities</h4>
+        <div style="background: rgba(245, 158, 11, 0.08); border-left: 3px solid var(--accent-amber); padding: 12px; border-radius: 6px; font-size: 12px; line-height: 1.5; color: var(--accent-amber);">
           ${escapeHtml(lead.painPoints || 'Custom software development, UI/UX revamp, or ERP automation.')}
         </div>
       </div>
 
       <div>
-        <h4 style="font-size: 13px; font-weight: 700; color: #FFF; margin-bottom: 10px;">Outreach Email History (${messages.length})</h4>
+        <h4 style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px;">Outreach Email History (${messages.length})</h4>
         ${messages.length === 0 ? '<div style="font-size: 12px; color: var(--text-muted);">No sequence emails generated for this prospect yet.</div>' : ''}
         ${messages.map(m => `
-          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-hairline); border-radius: 6px; padding: 12px; margin-bottom: 8px;">
+          <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-hairline); border-radius: 6px; padding: 12px; margin-bottom: 8px;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
               <span style="font-size: 10px; font-weight: 700; color: var(--accent-indigo-light);">STEP ${m.sequenceStepNumber} — ${m.status.toUpperCase()}</span>
               <span style="font-size: 10px; color: var(--text-muted); font-family: var(--font-mono);">${m.sentAt ? new Date(m.sentAt).toLocaleDateString() : 'Scheduled'}</span>
             </div>
-            <div style="font-size: 12px; font-weight: 600; color: #FFF; margin-bottom: 4px;">${escapeHtml(m.subject)}</div>
+            <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">${escapeHtml(m.subject)}</div>
             <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.4; white-space: pre-wrap;">${escapeHtml(m.body)}</div>
           </div>
         `).join('')}

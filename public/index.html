@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/style.css?v=2.1">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%200%22%20100%22%20100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
 </head>
 <body class="white-theme">
@@ -142,25 +142,32 @@
         </div>
 
         <div class="top-actions">
-          <button class="btn btn-jesora-ai" id="btn-open-assistant" title="Say 'Hello Jesora' or click to activate voice assistant">
-            <span class="jesora-ai-orb-micro"></span>
-            <span class="jesora-ai-label">Hello Jesora</span>
-            <span class="jesora-ai-badge">Voice AI</span>
-          </button>
-          <button class="btn btn-secondary btn-sm" id="btn-scout-lead-now" title="Scout fresh companies for active campaigns">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <span>Scout Leads</span>
-          </button>
-          <button class="btn btn-secondary btn-sm" id="btn-simulate-hot-reply" title="Simulate client reply to test AI sentiment">
-            <span>🧪</span> Test Reply
-          </button>
-          <button class="btn btn-secondary btn-sm" id="btn-theme-toggle" title="Toggle White / Dark Theme">
-            <span id="theme-toggle-icon">🌙</span> <span id="theme-toggle-label">Dark Theme</span>
-          </button>
-          <a href="https://jesoratech.com" target="_blank" class="btn btn-ghost btn-sm" title="Visit public site">
-            <span>jesoratech.com</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-          </a>
+          <div class="top-actions-group">
+            <button class="btn btn-secondary btn-sm" id="btn-scout-lead-now" title="Scout fresh companies for active campaigns">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <span>Scout Leads</span>
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btn-simulate-hot-reply" title="Simulate client reply to test AI sentiment">
+              <span>🧪</span> <span>Test Reply</span>
+            </button>
+          </div>
+
+          <div class="top-actions-divider"></div>
+
+          <div class="top-actions-group">
+            <button class="btn btn-jesora-ai" id="btn-open-assistant" title="Say 'Hello Jesora' or click to activate voice assistant">
+              <span class="jesora-ai-orb-micro"></span>
+              <span class="jesora-ai-label">Hello Jesora</span>
+              <span class="jesora-ai-badge">Voice AI</span>
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btn-theme-toggle" title="Toggle White / Dark Theme">
+              <span id="theme-toggle-icon">🌙</span> <span id="theme-toggle-label">Dark Theme</span>
+            </button>
+            <a href="https://jesoratech.com" target="_blank" class="btn btn-ghost btn-sm" title="Visit public site">
+              <span>jesoratech.com</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            </a>
+          </div>
         </div>
       </header>
 
@@ -175,16 +182,16 @@
             <div class="bento-card bento-card-main" data-nav="leads" role="button" tabindex="0" title="Click to view all Pipeline Leads in CRM">
               <div class="bento-card-header">
                 <span class="bento-label">TOTAL PIPELINE LEADS</span>
-                <span class="bento-badge" id="kpi-scouted-leads">+0 scouted</span>
+                <span class="bento-badge badge-blue" id="kpi-scouted-leads">+0 scouted</span>
               </div>
               <div class="bento-metric-number" id="kpi-total-leads">0</div>
-              <div class="bento-caption">High-fit prospects sourced & verified <span class="bento-nav-hint">View Leads ➔</span></div>
+              <div class="bento-caption">High-fit prospects sourced <span class="bento-nav-hint">View Leads ➔</span></div>
             </div>
 
             <div class="bento-card" data-nav="outbox" role="button" tabindex="0" title="Click to view all Dispatched Emails & Outbox Copy">
               <div class="bento-card-header">
                 <span class="bento-label">EMAILS DISPATCHED</span>
-                <span class="bento-icon">📤</span>
+                <span class="bento-badge badge-indigo">OUTBOX</span>
               </div>
               <div class="bento-metric-number" id="kpi-emails-sent">0</div>
               <div class="bento-caption" id="kpi-contacted-leads">0 contacted &bull; Paced <span class="bento-nav-hint">View Outbox ➔</span></div>
@@ -193,7 +200,7 @@
             <div class="bento-card" data-nav="inbox" role="button" tabindex="0" title="Click to view Inbound Responses & AI Sentiment">
               <div class="bento-card-header">
                 <span class="bento-label">REPLY ENGAGEMENT</span>
-                <span class="bento-pill-green" id="kpi-reply-rate">0.0%</span>
+                <span class="bento-badge badge-emerald" id="kpi-reply-rate">0.0%</span>
               </div>
               <div class="bento-metric-number" id="kpi-replies-count">0</div>
               <div class="bento-caption">Inbound responses received <span class="bento-nav-hint">View Inbox ➔</span></div>
@@ -202,7 +209,7 @@
             <div class="bento-card highlight-gold" data-nav="meetings" role="button" tabindex="0" title="Click to view Booked Discovery Calls">
               <div class="bento-card-header">
                 <span class="bento-label">MEETINGS BOOKED</span>
-                <span class="bento-pill-gold" id="kpi-conv-rate">0.0%</span>
+                <span class="bento-badge badge-amber" id="kpi-conv-rate">0.0%</span>
               </div>
               <div class="bento-metric-number text-amber" id="kpi-meetings-booked">0</div>
               <div class="bento-caption">Discovery calls scheduled <span class="bento-nav-hint">View Calls ➔</span></div>
@@ -211,10 +218,10 @@
             <div class="bento-card bento-pipeline-card" data-nav="campaigns" role="button" tabindex="0" title="Click to view Target Campaigns & Pipeline Value">
               <div class="bento-card-header">
                 <span class="bento-label">EST. PIPELINE VALUE</span>
-                <span class="bento-icon">💎</span>
+                <span class="bento-badge badge-purple">VALUE</span>
               </div>
               <div class="bento-metric-number text-gradient-indigo" id="kpi-pipeline-value">$0</div>
-              <div class="bento-caption">Web, SaaS & ERP contracts <span class="bento-nav-hint">View Campaigns ➔</span></div>
+              <div class="bento-caption">Web &amp; SaaS pipeline contracts <span class="bento-nav-hint">View Campaigns ➔</span></div>
             </div>
           </div>
 
@@ -907,18 +914,6 @@ Apex Dental,Dr. Arthur,arthur@apexdental.co.uk,https://apexdental.co.uk,42 Harle
     </div>
   </div>
 
-  <!-- FLOATING MINI TRIGGER BUBBLE -->
-  <div class="floating-assistant-bubble" id="floating-assistant-bubble" role="button" tabindex="0" title="Wake Jesora (Say 'Hello Jesora' or click)">
-    <div class="bubble-orb">
-      <div class="bubble-ripple"></div>
-      <span class="bubble-icon">✨</span>
-    </div>
-    <div class="bubble-tooltip">
-      <span class="bubble-status-dot active"></span>
-      <span id="bubble-tooltip-text">Say "Hello Jesora"</span>
-    </div>
-  </div>
-
   <!-- SLIDE-OVER DRAWER: LEAD DETAILS -->
   <div class="drawer-backdrop" id="lead-drawer">
     <div class="drawer-panel" id="drawer-inner">
@@ -929,6 +924,6 @@ Apex Dental,Dr. Arthur,arthur@apexdental.co.uk,https://apexdental.co.uk,42 Harle
   <!-- Notification Toast Container -->
   <div class="toast-hub" id="toast-container"></div>
 
-  <script src="/js/app.js"></script>
+  <script src="/js/app.js?v=2.1"></script>
 </body>
 </html>
