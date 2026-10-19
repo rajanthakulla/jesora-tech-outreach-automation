@@ -517,7 +517,7 @@ function renderLeadsTable() {
           <span style="font-size: 11px; color: var(--text-muted);">${escapeHtml(l.country)}</span>
           ${l.websiteVerified !== undefined ? `
             <div style="margin-top: 4px;">
-              <span style="font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; ${l.websiteVerified ? 'background: rgba(16, 185, 129, 0.12); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.25);' : 'background: rgba(239, 68, 68, 0.12); color: var(--accent-rose); border: 1px solid rgba(239, 68, 68, 0.25);'}">
+              <span style="font-size: 10px; font-weight: 600; padding: 2px 6px;  ${l.websiteVerified ? 'background: rgba(16, 185, 129, 0.12); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.25);' : 'background: rgba(239, 68, 68, 0.12); color: var(--accent-rose); border: 1px solid rgba(239, 68, 68, 0.25);'}">
                 ${l.websiteVerified ? '✓ Live Website' : '✕ Discarded (No Site)'}
               </span>
             </div>` : ''}
@@ -660,10 +660,10 @@ function selectOutboxMessage(msgId) {
 
   const isSent = msg.status === 'sent';
   const deliveryStatusHtml = isSent
-    ? `<span style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--accent-emerald); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px;">
+    ? `<span style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--accent-emerald); font-size: 11px; font-weight: 700; padding: 4px 10px; ">
         ✓ Dispatched via Gmail SMTP (${msg.sentAt ? new Date(msg.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' }) : 'Delivered'})
        </span>`
-    : `<span style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); color: var(--accent-amber); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px;">
+    : `<span style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); color: var(--accent-amber); font-size: 11px; font-weight: 700; padding: 4px 10px; ">
         ⏳ Scheduled for automated dispatch
        </span>`;
 
@@ -683,7 +683,7 @@ function selectOutboxMessage(msgId) {
         </div>
       </div>
 
-      <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-hairline); border-radius: 8px; padding: 12px 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+      <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-hairline);  padding: 12px 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
         <div>
           <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">PROSPECT RECIPIENT</div>
           <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">
@@ -723,7 +723,7 @@ function selectOutboxMessage(msgId) {
       </button>
     </div>
 
-    <div style="background: var(--bg-surface); border: 1px solid var(--border-hairline); border-radius: 10px; padding: 22px; font-size: 13px; line-height: 1.7; color: var(--text-primary); white-space: pre-wrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; box-shadow: var(--card-shadow);">
+    <div style="background: var(--bg-surface); border: 1px solid var(--border-hairline);  padding: 22px; font-size: 13px; line-height: 1.7; color: var(--text-primary); white-space: pre-wrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; box-shadow: var(--card-shadow);">
       ${escapeHtml(msg.body)}
     </div>
   `;
@@ -800,11 +800,11 @@ function selectReply(replyId) {
       </span>
     </div>
 
-    <div style="background: rgba(99, 102, 241, 0.08); border-left: 3px solid var(--accent-indigo); padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 12px; color: var(--text-primary);">
+    <div style="background: rgba(99, 102, 241, 0.08); border-left: 3px solid var(--accent-indigo); padding: 10px 14px;  margin-bottom: 16px; font-size: 12px; color: var(--text-primary);">
       <strong>🤖 AI Summary:</strong> ${escapeHtml(reply.aiSummary)}
     </div>
 
-    <div class="inbound-dialogue-card" style="background: var(--bg-surface); border: 1px solid var(--border-hairline); color: var(--text-primary); padding: 16px; border-radius: 8px; margin-bottom: 16px; line-height: 1.6;">${escapeHtml(reply.body)}</div>
+    <div class="inbound-dialogue-card" style="background: var(--bg-surface); border: 1px solid var(--border-hairline); color: var(--text-primary); padding: 16px;  margin-bottom: 16px; line-height: 1.6;">${escapeHtml(reply.body)}</div>
 
     <div class="ai-reply-blueprint">
       <div class="ai-blueprint-header">
@@ -1000,7 +1000,7 @@ function renderSequences() {
               <div style="font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">
                 Subject: "${escapeHtml(step.subjectTemplate)}"
               </div>
-              <div style="font-size: 12px; line-height: 1.5; color: var(--text-secondary); white-space: pre-wrap; background: var(--bg-surface-elevated); border: 1px solid var(--border-hairline); padding: 12px; border-radius: 6px;">
+              <div style="font-size: 12px; line-height: 1.5; color: var(--text-secondary); white-space: pre-wrap; background: var(--bg-surface-elevated); border: 1px solid var(--border-hairline); padding: 12px; ">
                 ${escapeHtml(step.bodyTemplate)}
               </div>
             </div>
@@ -1183,7 +1183,7 @@ async function openLeadDrawer(leadId) {
         <button class="modal-close-btn" onclick="closeLeadDrawer()">&times;</button>
       </div>
 
-      <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-hairline); border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+      <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-hairline);  padding: 16px; margin-bottom: 20px;">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px;">
           <div>
             <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">CONTACT PERSON</div>
@@ -1222,7 +1222,7 @@ async function openLeadDrawer(leadId) {
       </div>
 
       ${lead.flawReport ? `
-        <div style="background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.25); border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+        <div style="background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.25);  padding: 16px; margin-bottom: 20px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 20px;">🔬</span>
@@ -1248,7 +1248,7 @@ async function openLeadDrawer(leadId) {
           </div>
 
           ${lead.flawReport.designFlaws && lead.flawReport.designFlaws.length > 0 ? `
-            <div style="margin-bottom: 12px; background: rgba(236, 72, 153, 0.06); border: 1px solid rgba(236, 72, 153, 0.25); border-radius: 8px; padding: 10px 12px;">
+            <div style="margin-bottom: 12px; background: rgba(236, 72, 153, 0.06); border: 1px solid rgba(236, 72, 153, 0.25);  padding: 10px 12px;">
               <div style="font-size: 10px; font-weight: 700; color: #DB2777; text-transform: uppercase; margin-bottom: 5px; display: flex; align-items: center; gap: 6px;">
                 <span>🎨</span> Visual & UI/UX Design Flaws
               </div>
@@ -1283,14 +1283,14 @@ async function openLeadDrawer(leadId) {
 
       <div style="margin-bottom: 20px;">
         <h4 style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Technical Stack & Audit Findings</h4>
-        <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-hairline); padding: 12px; border-radius: 6px; font-size: 12px; line-height: 1.5; color: var(--text-primary);">
+        <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-hairline); padding: 12px;  font-size: 12px; line-height: 1.5; color: var(--text-primary);">
           ${escapeHtml(lead.techStack || 'No technical stack recorded.')}
         </div>
       </div>
 
       <div style="margin-bottom: 20px;">
         <h4 style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Pain Points & Opportunities</h4>
-        <div style="background: rgba(245, 158, 11, 0.08); border-left: 3px solid var(--accent-amber); padding: 12px; border-radius: 6px; font-size: 12px; line-height: 1.5; color: var(--accent-amber);">
+        <div style="background: rgba(245, 158, 11, 0.08); border-left: 3px solid var(--accent-amber); padding: 12px;  font-size: 12px; line-height: 1.5; color: var(--accent-amber);">
           ${escapeHtml(lead.painPoints || 'Custom software development, UI/UX revamp, or ERP automation.')}
         </div>
       </div>
@@ -1299,7 +1299,7 @@ async function openLeadDrawer(leadId) {
         <h4 style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px;">Outreach Email History (${messages.length})</h4>
         ${messages.length === 0 ? '<div style="font-size: 12px; color: var(--text-muted);">No sequence emails generated for this prospect yet.</div>' : ''}
         ${messages.map(m => `
-          <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-hairline); border-radius: 6px; padding: 12px; margin-bottom: 8px;">
+          <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-hairline);  padding: 12px; margin-bottom: 8px;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
               <span style="font-size: 10px; font-weight: 700; color: var(--accent-indigo-light);">STEP ${m.sequenceStepNumber} — ${m.status.toUpperCase()}</span>
               <span style="font-size: 10px; color: var(--text-muted); font-family: var(--font-mono);">${m.sentAt ? new Date(m.sentAt).toLocaleDateString() : 'Scheduled'}</span>
