@@ -1213,11 +1213,11 @@ async function openLeadDrawer(leadId) {
           <h2 style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin: 3px 0;">${escapeHtml(lead.companyName)}</h2>
           <div style="font-size: 12px; color: var(--text-secondary); font-family: var(--font-mono);">${escapeHtml(lead.industry)} &bull; ${escapeHtml(lead.country)}</div>
         </div>
-        <button class="modal-close-btn" onclick="closeLeadDrawer()" style="border-radius: 0 !important;">&times;</button>
+        <button class="modal-close-btn" onclick="closeLeadDrawer()" style="border-radius: 50% !important;">&times;</button>
       </div>
 
       <!-- Contact & HQ Telemetry Card -->
-      <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-hairline); padding: 16px; margin-bottom: 18px; border-radius: 0 !important;">
+      <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-hairline); padding: 16px; margin-bottom: 18px; border-radius: var(--radius-card, 16px);">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px;">
           <div>
             <div class="detail-meta-label">CONTACT PERSON</div>
@@ -1257,7 +1257,7 @@ async function openLeadDrawer(leadId) {
 
       <!-- Flaw & Audit Diagnostics -->
       ${lead.flawReport ? `
-        <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-hairline); border-left: 3px solid #EC4899; padding: 16px; margin-bottom: 18px; border-radius: 0 !important;">
+        <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-hairline); border-left: 3px solid #EC4899; padding: 16px; margin-bottom: 18px; border-radius: var(--radius-card, 16px);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 18px;">🔬</span>
@@ -1283,7 +1283,7 @@ async function openLeadDrawer(leadId) {
           </div>
 
           ${lead.flawReport.designFlaws && lead.flawReport.designFlaws.length > 0 ? `
-            <div style="margin-bottom: 12px; background: rgba(236, 72, 153, 0.05); border: 1px solid rgba(236, 72, 153, 0.2); padding: 10px 12px; border-radius: 0 !important;">
+            <div style="margin-bottom: 12px; background: rgba(236, 72, 153, 0.05); border: 1px solid rgba(236, 72, 153, 0.2); padding: 10px 12px; border-radius: var(--radius-inner, 10px);">
               <div style="font-size: 10px; font-weight: 800; color: #DB2777; text-transform: uppercase; font-family: var(--font-mono); margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
                 <span>🎨</span> Visual & UI/UX Design Flaws
               </div>
@@ -1321,7 +1321,7 @@ async function openLeadDrawer(leadId) {
         <h4 style="font-size: 12px; font-weight: 800; font-family: var(--font-mono); text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">
           TECHNICAL STACK & AUDIT FINDINGS
         </h4>
-        <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-hairline); padding: 12px 14px; font-size: 12px; line-height: 1.5; color: var(--text-primary); border-radius: 0 !important;">
+        <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-hairline); padding: 12px 14px; font-size: 12px; line-height: 1.5; color: var(--text-primary); border-radius: var(--radius-inner, 10px);">
           ${escapeHtml(lead.techStack || 'No technical stack recorded.')}
         </div>
       </div>
@@ -1331,7 +1331,7 @@ async function openLeadDrawer(leadId) {
         <h4 style="font-size: 12px; font-weight: 800; font-family: var(--font-mono); text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">
           PAIN POINTS & DEVELOPMENT OPPORTUNITIES
         </h4>
-        <div style="background: rgba(245, 158, 11, 0.08); border-left: 3px solid var(--accent-amber); border: 1px solid var(--border-hairline); border-left: 3px solid var(--accent-amber); padding: 12px 14px; font-size: 12px; line-height: 1.5; color: var(--accent-amber); border-radius: 0 !important;">
+        <div style="background: rgba(245, 158, 11, 0.08); border-left: 3px solid var(--accent-amber); border: 1px solid var(--border-hairline); border-left: 3px solid var(--accent-amber); padding: 12px 14px; font-size: 12px; line-height: 1.5; color: var(--accent-amber); border-radius: var(--radius-inner, 10px);">
           ${escapeHtml(lead.painPoints || 'Custom software development, UI/UX revamp, or ERP automation.')}
         </div>
       </div>
@@ -1341,9 +1341,9 @@ async function openLeadDrawer(leadId) {
         <h4 style="font-size: 12px; font-weight: 800; font-family: var(--font-mono); text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">
           OUTREACH EMAIL HISTORY (${messages.length})
         </h4>
-        ${messages.length === 0 ? '<div style="font-size: 12px; color: var(--text-muted); padding: 12px; background: var(--bg-surface-elevated); border: 1px dashed var(--border-hairline); text-align: center;">No sequence emails generated for this prospect yet.</div>' : ''}
+        ${messages.length === 0 ? '<div style="font-size: 12px; color: var(--text-muted); padding: 12px; background: var(--bg-surface-elevated); border: 1px dashed var(--border-hairline); border-radius: var(--radius-inner, 10px); text-align: center;">No sequence emails generated for this prospect yet.</div>' : ''}
         ${messages.map(m => `
-          <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-hairline); padding: 14px; margin-bottom: 10px; border-radius: 0 !important;">
+          <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-hairline); padding: 14px; margin-bottom: 10px; border-radius: var(--radius-card, 14px);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
               <span class="tag-badge" style="font-size: 9.5px; color: var(--accent-indigo-light);">
                 STEP ${m.sequenceStepNumber} &bull; ${m.status.toUpperCase()}
